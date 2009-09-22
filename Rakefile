@@ -1,30 +1,54 @@
-# Look in the tasks/setup.rb file for the various options that can be
-# configured in this Rakefile. The .rake files in the tasks directory
-# are where the options are used.
+require 'rubygems'
+require 'rake'
+require 'rake/rdoctask'
+require 'rake/gempackagetask'
 
-begin
-  require 'bones'
-  Bones.setup
-rescue LoadError
-  begin
-    load 'tasks/setup.rb'
-  rescue LoadError
-    raise RuntimeError, '### please install the "bones" gem ###'
-  end
+require 'spec/rake/spectask'
+
+desc 'Default: run the specs.'
+task :default => :spec
+
+Spec::Rake::SpecTask.new do |t|
+  t.spec_opts = ['--options', 'spec/spec.opts']
 end
 
-ensure_in_path 'lib'
-require 'amf'
+desc 'Generate documentation for the rubyamf plugin.'
+Rake::RDocTask.new(:rdoc) do |rdoc|
+  rdoc.rdoc_dir = 'rdoc'
+  rdoc.title    = 'Rack AMF'
+  rdoc.options << '--line-numbers' << '--main' << 'README.txt'
+  rdoc.rdoc_files.include('README.txt')
+  rdoc.rdoc_files.include('lib/**/*.rb')
+end
 
-task :default => 'spec:run'
+spec = Gem::Specification.new do |s|
+  s.name    = 'rack-amf'
+  s.version = '0.0.1'
+  s.summary = 'AMF serializer/deserializer and AMF gateway packaged as a rack middleware'
 
-PROJ.name = 'amf'
-PROJ.authors = 'Tony Hillerson'
-PROJ.email = 'tony.hillerson@effectiveui.com'
-PROJ.url = 'FIXME (project homepage)'
-PROJ.version = AMF::VERSION
-PROJ.rubyforge.name = 'amf'
+  s.files        = FileList['README.txt', 'Rakefile', 'History.txt', 'lib/**/*.rb', 'spec/**/*.rb']
+  s.require_path = 'lib'
+  s.test_files   = Dir[*['spec/**/*_spec.rb']]
 
-PROJ.spec.opts << '--color'
+  s.has_rdoc         = true
+  s.extra_rdoc_files = ['README.txt']
+  s.rdoc_options     = ['--line-numbers', '--main', 'README.txt']
 
-# EOF
+  s.authors  = ['Tony Hillerson', 'Stephen Augenstein']
+  s.email    = 'perl.programmer@gmail.com'
+  s.homepage = 'http://github.com/warhammerkid/rack-amf'
+
+  s.platform = Gem::Platform::RUBY
+end
+
+Rake::GemPackageTask.new spec do |pkg|
+  pkg.need_tar = true
+  pkg.need_zip = true
+end
+
+desc 'Generate a gemspec file'
+task :gemspec do
+  File.open("#{spec.name}.gemspec", 'w') do |f|
+    f.write spec.to_ruby
+  end
+end

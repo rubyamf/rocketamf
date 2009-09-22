@@ -1,6 +1,5 @@
 require File.dirname(__FILE__) + '/spec_helper.rb'
 
-require 'date'
 require 'rexml/document'
 
 describe AMF do
