@@ -1,5 +1,3 @@
-require 'amf/version'
-
 module AMF
   class << self
     # Returns the AMF deserializer class, that is used by AMF. This might be either
