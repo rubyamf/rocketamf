@@ -1,3 +1,5 @@
+require 'amf/values/typed_hash'
+
 module AMF
   # == Class Mapping
   #
@@ -46,6 +48,27 @@ module AMF
       end
     end
 
+    # Array of custom object populators. Processed in array order, they must
+    # respond to the "can_handle?" and "populate" methods.
+    #
+    # Example:
+    #
+    #   class CustomPopulator
+    #     def can_handle? obj
+    #       true
+    #     end
+    #   
+    #     def populate obj, props
+    #       obj.merge! props
+    #     end
+    #   end
+    #   AMF::ClassMapper.object_populators << CustomPopulator.new
+    attr_reader :object_populators
+
+    def initialize #:nodoc:
+      @object_populators = []
+    end
+
     # Define class mappings in the block
     #
     # Example:
@@ -64,30 +87,38 @@ module AMF
       mappings.get_as_class_name ruby_class_name
     end
 
-    # Creates a ruby object using the mapping configuration based on the source
-    # AS class name. Then, it populates the ruby object using the based in properties
-    def populate_ruby_obj as_class_name, props #:nodoc:
-      # Create ruby object
+    # Instantiates a ruby object using the mapping configuration based on the
+    # source AS class name. If there is no mapping defined, it returns a hash.
+    def get_ruby_obj as_class_name #:nodoc:
       ruby_class_name = mappings.get_ruby_class_name as_class_name
       if ruby_class_name.nil?
         # Populate a simple hash, since no mapping
-        ruby_obj = {}
+        return TypedHash.new(as_class_name)
       else
         ruby_class = ruby_class_name.split('::').inject(Kernel) {|scope, const_name| scope.const_get(const_name)}
-        ruby_obj = ruby_class.new
+        return ruby_class.new
+      end
+    end
+
+    # Populates the ruby object using the given properties
+    def populate_ruby_obj obj, props #:nodoc:
+      # Process custom populators
+      @object_populators.each do |p|
+        next unless p.can_handle?(obj)
+        p.populate(obj, props)
+        return obj
       end
 
-      # Populate
+      # Fallback populator
+      hash_like = obj.respond_to?("[]=")
       props.each do |key, value|
-        if ruby_obj.respond_to?("#{key}=")
-          ruby_obj.send("#{key}=", value)
-        elsif ruby_obj.respond_to?("[]=")
-          ruby_obj[key.to_s] = value
+        if obj.respond_to?("#{key}=")
+          obj.send("#{key}=", value)
+        elsif hash_like
+          obj[key.to_s] = value
         end
       end
-
-      # Return object
-      ruby_obj
+      obj
     end
 
     # Extracts all exportable properties from the given ruby object and returns
