@@ -1,3 +1,4 @@
 pkg/*
 .loadpath
 .project
+/rdoc/
