@@ -5,6 +5,7 @@ rescue LoadError
   gem 'rspec'
   require 'spec'
 end
+require 'spec/autorun'
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'amf'
