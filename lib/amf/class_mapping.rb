@@ -101,21 +101,22 @@ module AMF
     end
 
     # Populates the ruby object using the given properties
-    def populate_ruby_obj obj, props #:nodoc:
+    def populate_ruby_obj obj, props, dynamic_props=nil #:nodoc:
       # Process custom populators
       @object_populators.each do |p|
         next unless p.can_handle?(obj)
-        p.populate(obj, props)
+        p.populate obj, props, dynamic_props
         return obj
       end
 
       # Fallback populator
+      props.merge! dynamic_props if dynamic_props
       hash_like = obj.respond_to?("[]=")
       props.each do |key, value|
         if obj.respond_to?("#{key}=")
           obj.send("#{key}=", value)
         elsif hash_like
-          obj[key.to_s] = value
+          obj[key.to_sym] = value
         end
       end
       obj

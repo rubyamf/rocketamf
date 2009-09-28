@@ -54,7 +54,7 @@ describe AMF::ClassMapping do
 
     it "should populate a typed hash" do
       obj = @mapper.populate_ruby_obj AMF::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
-      obj['prop_a'].should == 'Data'
+      obj[:prop_a].should == 'Data'
     end
 
     it "should allow custom populators" do
@@ -62,9 +62,10 @@ describe AMF::ClassMapping do
         def can_handle? obj
           true
         end
-        def populate obj, props
+        def populate obj, props, dynamic_props
           obj[:populated] = true
           obj.merge! props
+          obj.merge! dynamic_props if dynamic_props
         end
       end
 

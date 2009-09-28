@@ -228,7 +228,7 @@ module AMF
             reference = class_type >> 1
             class_definition = @trait_cache[reference]
           else
-            actionscript_class_name = read_string source
+            class_name = read_string source
             externalizable = (class_type & 0x02) != 0
             dynamic = (class_type & 0x04) != 0
             attribute_count = class_type >> 3
@@ -236,34 +236,35 @@ module AMF
             class_attributes = []
             attribute_count.times{class_attributes << read_string(source)} # Read class members
             
-            class_definition = {"as_class_name" => actionscript_class_name, 
+            class_definition = {"class_name" => class_name, 
                                 "members" => class_attributes, 
                                 "externalizable" => externalizable, 
                                 "dynamic" => dynamic}
             cache_trait(class_definition)
           end
-          action_class_name = class_definition['as_class_name'] #get the className according to type
 
-          obj = Hash.new()
-            
+          obj = ClassMapper.get_ruby_obj class_definition["class_name"]
           cache_object(obj)
           
           if class_definition['externalizable']
-            if ['flex.messaging.io.ObjectProxy','flex.messaging.io.ArrayCollection'].include?(action_class_name)
-              obj = deserialize(source)
-            end         
-          else            
+            obj.externalized_data = deserialize(source)
+          else
+            props = {}
             class_definition['members'].each do |key|
               value = deserialize(source)
-              obj[key.to_sym] = value
+              props[key.to_sym] = value
             end
-            
+
+            dynamic_props = nil
             if class_definition['dynamic']
+              dynamic_props = {}
               while (key = read_string source) && key.length != 0  do # read next key
                 value = deserialize(source)
-                obj[key.to_sym] = value
+                dynamic_props[key.to_sym] = value
               end
             end
+
+            ClassMapper.populate_ruby_obj obj, props, dynamic_props
           end
           obj
         end
