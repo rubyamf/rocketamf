@@ -182,7 +182,6 @@ describe AMF do
       end
       
       it "should deserialize a hash as a dynamic anonymous object" do        
-        #need to account for order
         expected = hash
         input = readBinaryObject("hash.bin")
         output = AMF.deserialize(input)
@@ -268,7 +267,9 @@ describe AMF do
         expected = graphMember
         input = readBinaryObject("graphMember.bin")
         output = AMF.deserialize(input)
-        output.should == expected
+        output[:children][0][:parent].should === output
+        output[:parent].should === nil
+        output[:children].length.should == 2
       end
     end
 
