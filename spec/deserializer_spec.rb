@@ -95,6 +95,20 @@ describe "AMF when deserializing" do
       output.should == expected
     end
 
+    it "should deserialize a mapped object as a mapped ruby class instance" do
+      class RubyClass
+        attr_accessor :foo, :baz
+      end
+      AMF::ClassMapper.define {|m| m.map :as => 'org.rackAMF.ASClass', :ruby => 'RubyClass'}
+
+      input = readBinaryObject('typedObject.bin')
+      output = AMF.deserialize(input)
+
+      output.should be_a(RubyClass)
+      output.foo.should == 'bar'
+      output.baz.should == nil
+    end
+
     it "should deserialize a hash as a dynamic anonymous object" do
       input = readBinaryObject("hash.bin")
       output = AMF.deserialize(input)
