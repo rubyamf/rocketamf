@@ -17,73 +17,73 @@ describe AMF do
     describe "simple messages" do
       
       it "should serialize a null" do
-        expected = readBinaryObject("null.bin")
+        expected = readBinaryObject("amf3-null.bin")
         output = nil.to_amf
         output.should == expected
       end
 
       it "should serialize a false" do
-        expected = readBinaryObject("false.bin")
+        expected = readBinaryObject("amf3-false.bin")
         output = false.to_amf
         output.should == expected
       end
 
       it "should serialize a true" do
-        expected = readBinaryObject("true.bin")
+        expected = readBinaryObject("amf3-true.bin")
         output = true.to_amf
         output.should == expected
       end
 
       it "should serialize integers" do
-        expected = readBinaryObject("max.bin")
+        expected = readBinaryObject("amf3-max.bin")
         input = AMF::MAX_INTEGER
         output = input.to_amf
         output.should == expected
         
-        expected = readBinaryObject("0.bin")
+        expected = readBinaryObject("amf3-0.bin")
         output = 0.to_amf
         output.should == expected
         
-        expected = readBinaryObject("min.bin")
+        expected = readBinaryObject("amf3-min.bin")
         input = AMF::MIN_INTEGER
         output = input.to_amf
         output.should == expected
       end
       
       it "should serialize large integers" do
-        expected = readBinaryObject("largeMax.bin")
+        expected = readBinaryObject("amf3-largeMax.bin")
         input = AMF::MAX_INTEGER + 1
         output = input.to_amf
         output.should == expected
         
-        expected = readBinaryObject("largeMin.bin")
+        expected = readBinaryObject("amf3-largeMin.bin")
         input = AMF::MIN_INTEGER - 1
         output = input.to_amf
         output.should == expected
       end
       
       it "should serialize BigNums" do
-        expected = readBinaryObject("bigNum.bin")
+        expected = readBinaryObject("amf3-bigNum.bin")
         input = 2**1000
         output = input.to_amf
         output.should == expected
       end
 
       it "should serialize a simple string" do
-        expected = readBinaryObject("string.bin")
+        expected = readBinaryObject("amf3-string.bin")
         input = "String . String"
         output = input.to_amf
         output.should == expected
       end
 
       it "should serialize a symbol as a string" do
-        expected = readBinaryObject("symbol.bin")
+        expected = readBinaryObject("amf3-symbol.bin")
         output = :foo.to_amf
         output.should == expected
       end
 
       it "should serialize DateTimes" do
-        expected = readBinaryObject("date.bin")
+        expected = readBinaryObject("amf3-date.bin")
         input = DateTime.parse "1/1/1970"
         output = input.to_amf
         output.should == expected
@@ -94,7 +94,7 @@ describe AMF do
       end
       
       it "should serialize Dates" do
-        expected = readBinaryObject("date.bin")
+        expected = readBinaryObject("amf3-date.bin")
         input = Date.parse "1/1/1970"
         output = input.to_amf
         output.should == expected
@@ -105,7 +105,7 @@ describe AMF do
       end
 
       it "should serialize Times" do
-        expected = readBinaryObject("date.bin")
+        expected = readBinaryObject("amf3-date.bin")
         input = Time.utc 1970, 1, 1, 0
         output = input.to_amf
         output.should == expected
@@ -145,7 +145,7 @@ describe AMF do
         obj.property_two = 1
         obj.nil_property = nil
         
-        expected = readBinaryObject("dynObject.bin")
+        expected = readBinaryObject("amf3-dynObject.bin")
         input = obj
         output = input.to_amf
         output.should == expected
@@ -172,7 +172,7 @@ describe AMF do
         hash[:foo] = "bar"
         hash[:answer] = 42
         
-        expected = readBinaryObject("hash.bin")
+        expected = readBinaryObject("amf3-hash.bin")
         input = hash
         output = input.to_amf
         output.should == expected
@@ -191,14 +191,14 @@ describe AMF do
       it "should serialize an open struct as a dynamic anonymous object"
       
       it "should serialize an empty array" do
-        expected = readBinaryObject("emptyArray.bin")
+        expected = readBinaryObject("amf3-emptyArray.bin")
         input = []
         output = input.to_amf
         output.should == expected
       end
       
       it "should serialize an array of primatives" do
-        expected = readBinaryObject("primArray.bin")
+        expected = readBinaryObject("amf3-primArray.bin")
         input = [1, 2, 3, 4, 5]
         output = input.to_amf
         output.should == expected
@@ -213,7 +213,7 @@ describe AMF do
         so1 = SimpleObj.new
         so1.foo_three = 42
         
-        expected = readBinaryObject("mixedArray.bin")
+        expected = readBinaryObject("amf3-mixedArray.bin")
         input = [h1, h2, so1, SimpleObj.new, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]    
         output = input.to_amf
         output.should == expected
@@ -234,21 +234,21 @@ describe AMF do
         sc = StringCarrier.new
         sc.str = foo
         
-        expected = readBinaryObject("stringRef.bin")
+        expected = readBinaryObject("amf3-stringRef.bin")
         input = [foo, bar, foo, bar, foo, sc]
         output = input.to_amf
         output.should == expected
       end
       
       it "should not reference the empty string" do
-        expected = readBinaryObject("emptyStringRef.bin")
+        expected = readBinaryObject("amf3-emptyStringRef.bin")
         input = ""
         output = [input,input].to_amf
         output.should == expected
       end
       
       it "should keep references of duplicate dates" do
-        expected = readBinaryObject("datesRef.bin")
+        expected = readBinaryObject("amf3-datesRef.bin")
         input = Date.parse "1/1/1970"
         output = [input,input].to_amf
         output.should == expected
@@ -263,7 +263,7 @@ describe AMF do
         obj2 = SimpleReferenceableObj.new
         obj2.foo = obj1.foo
         
-        expected = readBinaryObject("objRef.bin") 
+        expected = readBinaryObject("amf3-objRef.bin") 
         input = [[obj1, obj2], "bar", [obj1, obj2]]
         output = input.to_amf
         output.should == expected
@@ -273,7 +273,7 @@ describe AMF do
         a = [1,2,3]
         b = %w{ a b c }
 
-        expected = readBinaryObject("arrayRef.bin")
+        expected = readBinaryObject("amf3-arrayRef.bin")
         input = [a, b, a, b]
         output = input.to_amf
         output.should == expected
@@ -285,7 +285,7 @@ describe AMF do
         a.should == b
         a.object_id.should_not == b.object_id
      
-        expected = readBinaryObject("emptyArrayRef.bin")
+        expected = readBinaryObject("amf3-emptyArrayRef.bin")
         input = [a,b,a,b]
         output = input.to_amf
         output.should == expected
@@ -317,7 +317,7 @@ describe AMF do
         level_1_child_2 = parent.add_child GraphMember.new
         # level_2_child_1 = level_1_child_1.add_child GraphMember.new
         
-        expected = readBinaryObject("graphMember.bin")
+        expected = readBinaryObject("amf3-graphMember.bin")
         input = parent
         output = input.to_amf()
         output.should == expected
