@@ -21,18 +21,31 @@ module AMF
       int32be :amf0ArrayLength #HACK - IGNORE - needed to unwrap AMF0 Wrapper
       int8 :amf3Type
       string :stream, :read_length => lambda { len - 6 } #:len
+
+      def deserialized
+        @data ||= AMF.deserialize(stream)
+        @data
+      end
     end
     
     class Header < BinData::Record
       meta_string :name
       int8 :required
-      data_string :data
+      data_string :raw_data
+
+      def data
+        raw_data.deserialized
+      end
     end
     
     class Body < BinData::Record
       meta_string :target
       meta_string :response
-      data_string :data
+      data_string :raw_data
+
+      def data
+        raw_data.deserialized
+      end
     end
     
     class Request < BinData::Record

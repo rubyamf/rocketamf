@@ -1,6 +1,8 @@
 require 'date'
 require 'rexml/document'
-module AMF 
+require 'amf/pure/io_helpers'
+
+module AMF
   module Pure
     module Serializer
       class State    
@@ -51,26 +53,26 @@ module AMF
         
         def header_for_cache(index)
           header = index << 1 # shift value left to leave a low bit of 0
-          AMF.pack_integer(header, self)
+          AMF::Pure::IOHelpers.pack_integer(header, self)
         end
       end
                   
       module SerializerMethods 
         module NilClass
           def to_amf(*)
-            '' << NULL_MARKER
+            '' << AMF3_NULL_MARKER
           end
         end
         
         module FalseClass
           def to_amf(*)
-            '' << FALSE_MARKER
+            '' << AMF3_FALSE_MARKER
           end
         end
         
         module TrueClass
           def to_amf(*)
-            '' << TRUE_MARKER
+            '' << AMF3_TRUE_MARKER
           end
         end
         
@@ -93,23 +95,23 @@ module AMF
           
           def write_integer(state = nil)
             output = ''
-            output << INTEGER_MARKER
-            output << AMF.pack_integer(self)
+            output << AMF3_INTEGER_MARKER
+            output << AMF::Pure::IOHelpers.pack_integer(self)
           end
         end
         
         module Float
           def to_amf(state = nil, *)
             output = ''
-            output << DOUBLE_MARKER
-            output << AMF.pack_double(self, state)
+            output << AMF3_DOUBLE_MARKER
+            output << AMF::Pure::IOHelpers.pack_double(self, state)
           end
         end
         
         module String
           def to_amf(state = nil, *)
             output = ''
-            output << STRING_MARKER
+            output << AMF3_STRING_MARKER
             output << write_string(state)
           end
           
@@ -130,7 +132,7 @@ module AMF
           def header_for_string(state = nil)
             header = self.length << 1 # make room for a low bit of 1
             header = header | 1 # set the low bit to 1
-            AMF.pack_integer(header, state)
+            AMF::Pure::IOHelpers.pack_integer(header, state)
           end
         end
         
@@ -143,7 +145,7 @@ module AMF
         module Array
           def to_amf(state = nil, *)
             output = ''
-            output << ARRAY_MARKER
+            output << AMF3_ARRAY_MARKER
           
             state = SerializerState.from_state(state)
             if cache_header =  state.object_cache(self)
@@ -165,14 +167,14 @@ module AMF
           def header_for_array(state = nil)
             header = self.length << 1 # make room for a low bit of 1
             header = header | 1 # set the low bit to 1
-            AMF.pack_integer(header, state)
+            AMF::Pure::IOHelpers.pack_integer(header, state)
           end
         end
    
         module Object
           def to_amf(state = nil, *)
             output = ''
-            output << OBJECT_MARKER
+            output << AMF3_OBJECT_MARKER
             
             state = SerializerState.from_state(state) 
             if cache_header = state.object_cache(self)
@@ -232,7 +234,7 @@ module AMF
         module Time
           def to_amf(state = nil, *)
             output = ''
-            output << DATE_MARKER
+            output << AMF3_DATE_MARKER
             
             self.utc unless self.utc?
             seconds = (self.to_f * 1000).to_i
@@ -240,8 +242,8 @@ module AMF
             if state && (cache_header = state.object_cache(self))
               output << cache_header
             else
-              output << AMF.pack_integer(NULL_MARKER)
-              output << AMF.pack_double(seconds, state)
+              output << AMF::Pure::IOHelpers.pack_integer(AMF3_NULL_MARKER)
+              output << AMF::Pure::IOHelpers.pack_double(seconds, state)
             end
           end
         end
@@ -249,15 +251,15 @@ module AMF
         module Date
           def to_amf(state = nil, *)
             output = ''
-            output << DATE_MARKER
+            output << AMF3_DATE_MARKER
             
             seconds = ((self.strftime("%s").to_i) * 1000).to_i
             
             if state && (cache_header = state.object_cache(self))
               output << cache_header
             else
-              output << AMF.pack_integer(NULL_MARKER)
-              output << AMF.pack_double(seconds, state)
+              output << AMF::Pure::IOHelpers.pack_integer(AMF3_NULL_MARKER)
+              output << AMF::Pure::IOHelpers.pack_double(seconds, state)
             end
           end
         end
@@ -272,42 +274,4 @@ module AMF
       end 
     end
   end
-  
-  module_function
-  
-  def pack_integer(integer, state = nil)
-    if state
-      state.integer_cache[integer] ||= pack_integer_helper(integer)
-    else
-      pack_integer_helper(integer)
-    end
-  end
-  
-  def pack_integer_helper(integer)
-    integer = integer & 0x1fffffff
-    if(integer < 0x80)
-      [integer].pack('c')
-    elsif(integer < 0x4000)
-      [integer >> 7 & 0x7f | 0x80].pack('c')+
-      [integer & 0x7f].pack('c')
-    elsif(integer < 0x200000)
-      [integer >> 14 & 0x7f | 0x80].pack('c') +
-      [integer >> 7 & 0x7f | 0x80].pack('c') +
-      [integer & 0x7f].pack('c')
-    else
-      [integer >> 22 & 0x7f | 0x80].pack('c')+
-      [integer >> 15 & 0x7f | 0x80].pack('c')+
-      [integer >> 8 & 0x7f | 0x80].pack('c')+
-      [integer & 0xff].pack('c')
-    end
-  end
-  
-  def pack_double(double, state = nil)
-    if state
-      (state.float_cache[double] ||= [double].pack('G'))
-    else
-      [double].pack('G')
-    end
-  end
-
 end
