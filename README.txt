@@ -1,26 +1,6 @@
-= amf
-
-* FIX (url)
-
 == DESCRIPTION:
 
-FIX (describe your package)
-
-== FEATURES/PROBLEMS:
-
-* FIX (list of features or problems)
-
-== SYNOPSIS:
-
-  FIX (code sample of usage)
-
-== REQUIREMENTS:
-
-* FIX (list of requirements)
-
-== INSTALL:
-
-* FIX (sudo gem install, anything else)
+What will eventually become a full featured AMF gateway implemented as a Rack middleware. Currently includes a fully compliant AMF0/AMF3 deserializer and AMF3 serializer.
 
 == LICENSE:
 
