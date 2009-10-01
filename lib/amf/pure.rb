@@ -9,6 +9,7 @@ module AMF
   module Pure
     $DEBUG and warn "Using pure library for AMF."
     AMF.deserializer = Deserializer
+    AMF.amf3_deserializer = AMF3Deserializer
     AMF.serializer = Serializer
   end
 end

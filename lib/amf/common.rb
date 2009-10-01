@@ -2,13 +2,20 @@ module AMF
   class << self
     # Returns the AMF deserializer class, that is used by AMF. This might be either
     # AMF::Ext::Deserializer or AMF::Pure::Deserializer.
-    attr_reader :deserializer
+    attr_reader :deserializer, :amf3_deserializer
 
     # Set the AMF deserializer class _deserializer_ to be used by AMF.
     def deserializer=(deserializer) # :nodoc:
       @deserializer = deserializer
       remove_const :Deserializer if const_defined? :Deserializer
       const_set :Deserializer, deserializer
+    end
+
+    # Set the AMF3 deserializer class _amf3_deserializer_ to be used by AMF.
+    def amf3_deserializer=(deserializer) # :nodoc:
+      @amf3_deserializer = deserializer
+      remove_const :AMF3Deserializer if const_defined? :AMF3Deserializer
+      const_set :AMF3Deserializer, deserializer
     end
     
     # Deserialize the AMF string _source_ into a Ruby data structure and return it.

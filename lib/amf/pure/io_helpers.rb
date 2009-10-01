@@ -11,28 +11,14 @@ module AMF::Pure::IOHelpers #:nodoc:
     source.readbytes(8).unpack('G').first
   end
 
-  def readn(source, length)
-    source.readbytes(length)
-  end
-
   def read_word16_network source
     source.readbytes(2).unpack('n').first
   end
 
   def read_int16_network source
-    str = self.readn(source, 2)
+    str = source.readbytes(2)
     str.reverse! if byte_order_little? # swap bytes as native=little (and we want network)
     str.unpack('s').first
-  end
-
-  def read_utf source
-    length = read_word16_network source
-    readn(source, length)
-  end
-
-  def read_boolean source
-    d = source.readbytes(1).unpack('c').first
-    (d == 1) ? true : false;
   end
 
   def read_word32_network source

@@ -17,10 +17,7 @@ module AMF
     
     class DataString < BinData::Record
       int32be :len, :value => lambda { stream.length }
-      int8 :amf0Type #HACK - IGNORE - needed to unwrap AMF0 Wrapper
-      int32be :amf0ArrayLength #HACK - IGNORE - needed to unwrap AMF0 Wrapper
-      int8 :amf3Type
-      string :stream, :read_length => lambda { len - 6 } #:len
+      string :stream, :read_length => :len
 
       def deserialized
         @data ||= AMF.deserialize(stream)
