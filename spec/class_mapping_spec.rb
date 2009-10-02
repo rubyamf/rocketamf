@@ -42,7 +42,7 @@ describe AMF::ClassMapping do
     it "should return a hash with original type if not mapped" do
       obj = @mapper.get_ruby_obj('UnmappedClass')
       obj.should be_a(AMF::TypedHash)
-      obj.original_type.should == 'UnmappedClass'
+      obj.type.should == 'UnmappedClass'
     end
   end
 
@@ -76,12 +76,33 @@ describe AMF::ClassMapping do
     end
   end
 
-  it "should extract props for serialization" do
-    obj = RubyClass.new
-    obj.prop_a = 'Test A'
-    obj.prop_b = 'Test B'
+  describe "property extractor" do
+    it "should extract hash properties" do
+      hash = {:a => 'test1', :b => 'test2'}
+      @mapper.props_for_serialization(hash).should == hash
+    end
 
-    hash = @mapper.props_for_serialization obj
-    hash.should == {'prop_a' => 'Test A', 'prop_b' => 'Test B', 'prop_c' => nil}
+    it "should extract object properties" do
+      obj = RubyClass.new
+      obj.prop_a = 'Test A'
+      obj.prop_b = 'Test B'
+
+      hash = @mapper.props_for_serialization obj
+      hash.should == {:prop_a => 'Test A', :prop_b => 'Test B', :prop_c => nil}
+    end
+
+    it "should allow custom serializers" do
+      class CustomSerializer
+        def can_handle? obj
+          true
+        end
+        def serialize obj
+          {:success => true}
+        end
+      end
+
+      @mapper.object_serializers << CustomSerializer.new
+      @mapper.props_for_serialization(nil).should == {:success => true}
+    end
   end
 end
