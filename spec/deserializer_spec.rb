@@ -6,82 +6,74 @@ describe "when deserializing" do
     File.open(File.dirname(__FILE__) + '/fixtures/objects/' + binary_path).read
   end
 
-  def readBinaryRequest(binary_path)
-    File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path).read
-  end
-
   describe "AMF0" do
-    before(:each) do
-      @deserializer = AMF.deserializer.new()
-    end
-
     it "should deserialize numbers" do
       input = readBinaryObject('amf0-number.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == 3.5
     end
 
     it "should deserialize booleans" do
       input = readBinaryObject('amf0-boolean.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should === true
     end
 
     it "should deserialize strings" do
       input = readBinaryObject('amf0-string.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == "this is a テスト"
     end
 
     it "should deserialize anonymous objects" do
       input = readBinaryObject('amf0-object.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == {:foo => 'baz', :bar => 3.14}
     end
 
     it "should deserialize nulls" do
       input = readBinaryObject('amf0-null.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == nil
     end
 
     it "should deserialize undefineds" do
       input = readBinaryObject('amf0-undefined.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == nil
     end
 
     it "should deserialize references properly" do
       input = readBinaryObject('amf0-ref-test.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.length.should == 2
       output[0].should === output[1]
     end
 
     it "should deserialize hashes" do
       input = readBinaryObject('amf0-hash.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == {:a => 'b', :c => 'd'}
     end
 
     it "should deserialize arrays from flash player" do
       # Even Array is serialized as a "hash", so check that deserializer converts to array
       input = readBinaryObject('amf0-ecma-ordinal-array.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == ['a', 'b', 'c', 'd']
     end
 
     it "should deserialize dates" do
       input = readBinaryObject('amf0-date.bin')
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
       output.should == Time.utc(2003, 2, 13, 5)
     end
 
     it "should deserialize an unmapped object as a dynamic anonymous object" do
       input = readBinaryObject("amf0-typed-object.bin")
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
 
-      output.original_type.should == 'org.rackAMF.ASClass'
+      output.type.should == 'org.rackAMF.ASClass'
       output.should == {:foo => 'bar', :baz => nil}
     end
 
@@ -92,7 +84,7 @@ describe "when deserializing" do
       AMF::ClassMapper.define {|m| m.map :as => 'org.rackAMF.ASClass', :ruby => 'RubyClass'}
 
       input = readBinaryObject("amf0-typed-object.bin")
-      output = @deserializer.deserialize(input)
+      output = AMF.deserialize(input, 0)
 
       output.should be_a(RubyClass)
       output.foo.should == 'bar'
@@ -101,74 +93,70 @@ describe "when deserializing" do
   end
 
   describe "AMF3" do
-    before(:each) do
-      @deserializer = AMF.amf3_deserializer.new()
-    end
-
     describe "simple messages" do
       it "should deserialize a null" do
         input = readBinaryObject("amf3-null.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == nil
       end
 
       it "should deserialize a false" do
         input = readBinaryObject("amf3-false.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == false
       end
 
       it "should deserialize a true" do
         input = readBinaryObject("amf3-true.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == true
       end
 
       it "should deserialize integers" do
         input = readBinaryObject("amf3-max.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == AMF::MAX_INTEGER
 
         input = readBinaryObject("amf3-0.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == 0
 
         input = readBinaryObject("amf3-min.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == AMF::MIN_INTEGER
       end
 
       it "should deserialize large integers" do
         input = readBinaryObject("amf3-largeMax.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == AMF::MAX_INTEGER + 1
 
         input = readBinaryObject("amf3-largeMin.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == AMF::MIN_INTEGER - 1
       end
 
       it "should deserialize BigNums" do
         input = readBinaryObject("amf3-bigNum.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == 2**1000
       end
 
       it "should deserialize a simple string" do
         input = readBinaryObject("amf3-string.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == "String . String"
       end
 
       it "should deserialize a symbol as a string" do
         input = readBinaryObject("amf3-symbol.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == "foo"
       end
 
       it "should deserialize dates" do
         input = readBinaryObject("amf3-date.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == Time.at(0)
       end
 
@@ -179,7 +167,7 @@ describe "when deserializing" do
     describe "objects" do
       it "should deserialize an unmapped object as a dynamic anonymous object" do
         input = readBinaryObject("amf3-dynObject.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         expected = {
           :property_one => 'foo',
@@ -197,7 +185,7 @@ describe "when deserializing" do
         AMF::ClassMapper.define {|m| m.map :as => 'org.rackAMF.ASClass', :ruby => 'RubyClass'}
 
         input = readBinaryObject("amf3-typedObject.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         output.should be_a(RubyClass)
         output.foo.should == 'bar'
@@ -206,7 +194,7 @@ describe "when deserializing" do
 
       it "should deserialize a hash as a dynamic anonymous object" do
         input = readBinaryObject("amf3-hash.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == {:foo => "bar", :answer => 42}
       end
 
@@ -214,19 +202,19 @@ describe "when deserializing" do
 
       it "should deserialize an empty array" do
         input = readBinaryObject("amf3-emptyArray.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == []
       end
 
       it "should deserialize an array of primatives" do
         input = readBinaryObject("amf3-primArray.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == [1,2,3,4,5]
       end
 
       it "should deserialize an array of mixed objects" do
         input = readBinaryObject("amf3-mixedArray.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         h1 = {:foo_one => "bar_one"}
         h2 = {:foo_two => ""}
@@ -240,7 +228,7 @@ describe "when deserializing" do
     describe "and implementing the AMF Spec" do
       it "should keep references of duplicate strings" do
         input = readBinaryObject("amf3-stringRef.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         class StringCarrier; attr_accessor :str; end
         foo = "foo"
@@ -252,13 +240,13 @@ describe "when deserializing" do
 
       it "should not reference the empty string" do
         input = readBinaryObject("amf3-emptyStringRef.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
         output.should == ["",""]
       end
 
       it "should keep references of duplicate dates" do
         input = readBinaryObject("amf3-datesRef.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         output[0].should equal(output[1])
         # Expected object:
@@ -267,7 +255,7 @@ describe "when deserializing" do
 
       it "should keep reference of duplicate objects" do
         input = readBinaryObject("amf3-objRef.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         obj1 = {:foo => "bar"}
         obj2 = {:foo => obj1[:foo]}
@@ -276,7 +264,7 @@ describe "when deserializing" do
 
       it "should keep references of duplicate arrays" do
         input = readBinaryObject("amf3-arrayRef.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         a = [1,2,3]
         b = %w{ a b c }
@@ -285,7 +273,7 @@ describe "when deserializing" do
 
       it "should not keep references of duplicate empty arrays unless the object_id matches" do
         input = readBinaryObject("amf3-emptyArrayRef.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         a = []
         b = []
@@ -297,7 +285,7 @@ describe "when deserializing" do
 
       it "should deserialize a deep object graph with circular references" do
         input = readBinaryObject("amf3-graphMember.bin")
-        output = @deserializer.deserialize(input)
+        output = AMF.deserialize(input, 3)
 
         output[:children][0][:parent].should === output
         output[:parent].should === nil
@@ -313,44 +301,6 @@ describe "when deserializing" do
         # parent[:parent] = nil
         # parent[:children] = [child1, child2]
       end
-    end
-  end
-
-  describe "requests" do
-    it "should handle remoting message from remote object" do
-      input = readBinaryRequest("remotingMessage.bin")
-      output = AMF.deserializer.new().deserialize_request(input)
-
-      expected = [{
-        :timeToLive => 0,
-        :body => [true],
-        :timestamp => 0,
-        :source => "WritesController",
-        :destination => "rubyamf",
-        :operation => "save",
-        :headers => {:DSEndpoint => nil, :DSId => "nil"},
-        :messageId => "FE4AF2BC-DD3C-5470-05D8-9971D51FF89D",
-        :clientId => nil
-      }]
-      output.bodies[0].data.should == expected
-    end
-
-    it "should handle command message from remote object" do
-      input = readBinaryRequest("commandMessage.bin")
-      output = AMF.deserializer.new().deserialize_request(input)
-
-      expected = [{
-        :correlationId => "",
-        :destination => "",
-        :operation => 5,
-        :body => {},
-        :headers => {:DSMessagingVersion => 1, :DSId => "nil"},
-        :timeToLive => 0,
-        :messageId => "7B0ACE15-8D57-6AE5-B9D4-99C2D32C8246",
-        :timestamp => 0,
-        :clientId => nil
-      }]
-      output.bodies[0].data.should == expected
     end
   end
 end

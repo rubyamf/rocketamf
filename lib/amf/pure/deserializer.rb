@@ -11,12 +11,6 @@ module AMF
         @ref_cache = []
       end
 
-      def deserialize_request(source)
-        request = Request.new()
-        request.read(source)
-        return request
-      end
-
       def deserialize(source, type=nil)
         source = BinData::IO.new(source) unless BinData::IO === source
         type = read_int8 source unless type
@@ -55,6 +49,8 @@ module AMF
       end
 
       private
+      include AMF::Pure::IOHelpers
+
       def read_number source
         res = read_double source
         res.is_a?(Float)&&res.nan? ? nil : res # check for NaN and convert them to nil
@@ -146,8 +142,6 @@ module AMF
         @ref_cache << obj
         obj
       end
-
-      include AMF::Pure::IOHelpers
     end
 
     # AMF3 implementation of deserializer, loaded automatically by the AMF0
@@ -193,6 +187,8 @@ module AMF
       end
 
       private
+      include AMF::Pure::IOHelpers
+
       def read_integer source
         n = 0
         b = read_word8(source) || 0
@@ -353,8 +349,6 @@ module AMF
           time
         end
       end
-
-      include AMF::Pure::IOHelpers
     end
   end
 end
