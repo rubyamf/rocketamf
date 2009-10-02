@@ -63,6 +63,32 @@ module AMF
       def pack_double(double)
         [double].pack('G')
       end
+
+      def pack_int8(val)
+        [val].pack('c')
+      end
+
+      def pack_int16_network(val)
+        [val].pack('n')
+      end
+
+      def pack_word32_network(val)
+        str = [val].pack('L')
+        str.reverse! if byte_order_little? # swap bytes as native=little (and we want network)
+        str
+      end
+
+      def byte_order
+        if [0x12345678].pack("L") == "\x12\x34\x56\x78"
+          :BigEndian
+        else
+          :LittleEndian
+        end
+      end
+
+      def byte_order_little?
+        (byte_order == :LittleEndian) ? true : false;
+      end
     end
   end
 end
