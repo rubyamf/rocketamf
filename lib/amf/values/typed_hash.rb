@@ -1,9 +1,9 @@
 module AMF
   class TypedHash < Hash
-    attr_reader :original_type
+    attr_reader :type
 
     def initialize type
-      @original_type = type
+      @type = type
     end
   end
 end

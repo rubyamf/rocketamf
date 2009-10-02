@@ -1,277 +1,209 @@
-require 'date'
-require 'rexml/document'
 require 'amf/pure/io_helpers'
 
 module AMF
   module Pure
-    module Serializer
-      class State    
-        def self.from_state(opts)
-          opts ||= new
-        end
-        
-        def initialize(opts = {})
-          @dynamic = false
-          # integer cache and float cache are used to avoid 
-          # processing the numbers multiple times
-          @integer_cache = {}
-          @float_cache   = {}
-          # string and object cache are used as reference
-          # tables which are further discussed in the AMF specs
-          @string_cache  = {}
-          @object_cache  = {}
-        end
-        attr_accessor :dynamic,
-                      :integer_cache, 
-                      :float_cache,
-                      :string_cache,
-                      :object_cache
-                
-        # if string has been referenced, returns the index of the reference
-        # in the implicit string reference tabel. If no reference is found
-        # sets the reference to the next index in the implicit strings table
-        # and returns nil
-        def string_cache(str)
-          index = @string_cache.fetch(str) { |str|
-            @string_cache[str] = @string_cache.length
-            nil
-          }
-          header_for_cache(index) if index
-        end
-        
-        # if object has been referenced, returns the index of the reference
-        # in the implicit object reference table. If no reference is found
-        # sets the reference to the next index in the implicit objects table
-        # and returns nil.
-        def object_cache(obj)
-          index = @object_cache.fetch(obj.amf_id) { |amf_id|
-            @object_cache[amf_id] = @object_cache.length
-            nil
-          }
-          header_for_cache(index) if index
-        end
-        
-        def header_for_cache(index)
-          header = index << 1 # shift value left to leave a low bit of 0
-          AMF::Pure::IOHelpers.pack_integer(header, self)
+    class Serializer
+      def initialize
+        @ref_cache = SerializerCache.new
+      end
+
+      def serialize obj, stream = ""
+        if @ref_cache[obj] != nil
+          # Write reference header
         end
       end
-                  
-      module SerializerMethods 
-        module NilClass
-          def to_amf(*)
-            '' << AMF3_NULL_MARKER
+    end
+
+    class AMF3Serializer
+      attr_reader :string_cache
+
+      def initialize
+        @string_cache = SerializerCache.new
+        @object_cache = SerializerCache.new
+      end
+
+      def serialize obj, stream = ""
+        if obj.respond_to?(:to_amf)
+          stream << obj.to_amf
+        elsif obj.is_a?(NilClass)
+          write_null stream
+        elsif obj.is_a?(TrueClass)
+          write_true stream
+        elsif obj.is_a?(FalseClass)
+          write_false stream
+        elsif obj.is_a?(Float)
+          write_float obj, stream
+        elsif obj.is_a?(Integer)
+          write_integer obj, stream
+        elsif obj.is_a?(Symbol) || obj.is_a?(String)
+          write_string obj.to_s, stream
+        elsif obj.is_a?(Time)
+          write_date obj, stream
+        elsif obj.is_a?(Array)
+          write_array obj, stream
+        elsif obj.is_a?(Hash) || obj.is_a?(Object)
+          write_object obj, stream
+        end
+        stream
+      end
+
+      def write_reference index, stream
+        header = index << 1 # shift value left to leave a low bit of 0
+        stream << pack_integer(header)
+      end
+
+      def write_null stream
+        stream << AMF3_NULL_MARKER
+      end
+
+      def write_true stream
+        stream << AMF3_TRUE_MARKER
+      end
+
+      def write_false stream
+        stream << AMF3_FALSE_MARKER
+      end
+
+      def write_integer int, stream
+        if int < MIN_INTEGER || int > MAX_INTEGER # Check valid range for 29 bits
+          write_float int.to_f, stream
+        else
+          stream << AMF3_INTEGER_MARKER
+          stream << pack_integer(int)
+        end
+      end
+
+      def write_float float, stream
+        stream << AMF3_DOUBLE_MARKER
+        stream << pack_double(float)
+      end
+
+      def write_string str, stream
+        stream << AMF3_STRING_MARKER
+        write_utf8_vr str, stream
+      end
+
+      def write_date date, stream
+        stream << AMF3_DATE_MARKER
+        if @object_cache[date] != nil
+          write_reference @object_cache[date], stream
+        else
+          # Cache date
+          @object_cache.add_obj date
+
+          # Build AMF string
+          date.utc unless date.utc?
+          seconds = (date.to_f * 1000).to_i
+          stream << pack_integer(AMF3_NULL_MARKER)
+          stream << pack_double(seconds)
+        end
+      end
+
+      def write_array array, stream
+        stream << AMF3_ARRAY_MARKER
+        if @object_cache[array] != nil
+          write_reference @object_cache[array], stream
+        else
+          # Cache array
+          @object_cache.add_obj array
+
+          # Build AMF string
+          header = array.length << 1 # make room for a low bit of 1
+          header = header | 1 # set the low bit to 1
+          stream << pack_integer(header)
+          stream << CLOSE_DYNAMIC_ARRAY
+          array.each do |elem|
+            serialize elem, stream
           end
         end
-        
-        module FalseClass
-          def to_amf(*)
-            '' << AMF3_FALSE_MARKER
+      end
+
+      def write_object obj, stream
+        stream << AMF3_OBJECT_MARKER
+        if @object_cache[obj] != nil
+          write_reference @object_cache[obj], stream
+        else
+          # Cache object
+          @object_cache.add_obj obj
+
+          class_name = ClassMapper.get_as_class_name obj
+
+          # Any object that has a class name isn't dynamic
+          unless class_name
+            stream << DYNAMIC_OBJECT
           end
+
+          # Write class name/anonymous
+          if class_name
+            write_utf8_vr class_name, stream
+          else
+            stream << ANONYMOUS_OBJECT
+          end
+
+          # Write out properties
+          props = ClassMapper.props_for_serialization obj
+          props.each do |key, val|
+            write_utf8_vr key.to_s, stream
+            serialize val, stream
+          end
+
+          # Write close
+          stream << CLOSE_DYNAMIC_OBJECT
         end
-        
-        module TrueClass
-          def to_amf(*)
-            '' << AMF3_TRUE_MARKER
-          end
+      end
+
+      private
+      include AMF::Pure::IOHelpers
+
+      def write_utf8_vr str, stream
+        if str == ''
+          stream << EMPTY_STRING
+        elsif @string_cache[str] != nil
+          write_reference @string_cache[str], stream
+        else
+          # Cache string
+          @string_cache.add_obj str
+
+          # Build AMF string
+          header = str.length << 1 # make room for a low bit of 1
+          header = header | 1 # set the low bit to 1
+          stream << pack_integer(header)
+          stream << str
         end
-        
-        module Bignum
-          def to_amf(state = nil, *)
-            self.to_f.to_amf(state)
-          end
+      end
+    end
+
+    private
+    class SerializerCache
+      def initialize
+        @cache_index = 0
+        @store = {}
+      end
+
+      def [] obj
+        @store[object_key(obj)]
+      end
+
+      def []= obj, value
+        @store[object_key(obj)] = value
+      end
+
+      def add_obj obj
+        key = object_key obj
+        if @store[key].nil?
+          @store[key] = @cache_index
+          @cache_index += 1
         end
-        
-        module Integer
-          def to_amf(state = nil, *)
-            if self >= MIN_INTEGER && self <= MAX_INTEGER #check valid range for 29 bits
-              write_integer(state)
-            else #overflow to a double
-              self.to_f.to_amf(state)
-            end
-          end
-          
-          protected
-          
-          def write_integer(state = nil)
-            output = ''
-            output << AMF3_INTEGER_MARKER
-            output << AMF::Pure::IOHelpers.pack_integer(self)
-          end
+      end
+
+      private
+      def object_key obj
+        if obj.is_a?(String)
+          obj
+        else
+          obj.object_id
         end
-        
-        module Float
-          def to_amf(state = nil, *)
-            output = ''
-            output << AMF3_DOUBLE_MARKER
-            output << AMF::Pure::IOHelpers.pack_double(self, state)
-          end
-        end
-        
-        module String
-          def to_amf(state = nil, *)
-            output = ''
-            output << AMF3_STRING_MARKER
-            output << write_string(state)
-          end
-          
-          def write_string(state = nil)
-            output = ''
-            if self == ''
-              output << EMPTY_STRING
-            elsif state && (cache_header = state.string_cache(self))
-              output << cache_header
-            else
-              output << header_for_string(state) 
-              output << self
-            end
-          end
-          
-          private
-          
-          def header_for_string(state = nil)
-            header = self.length << 1 # make room for a low bit of 1
-            header = header | 1 # set the low bit to 1
-            AMF::Pure::IOHelpers.pack_integer(header, state)
-          end
-        end
-        
-        module Symbol
-          def to_amf(state = nil, *)
-            self.to_s.to_amf(state)
-          end
-        end
-        
-        module Array
-          def to_amf(state = nil, *)
-            output = ''
-            output << AMF3_ARRAY_MARKER
-          
-            state = SerializerState.from_state(state)
-            if cache_header =  state.object_cache(self)
-              output << cache_header
-            else
-              output << header_for_array(state)
-              # AMF only encodes strict, dense arrays by the AMF spec
-              # so the dynamic portion is empty
-              output << CLOSE_DYNAMIC_ARRAY
-              self.each do |val|
-                output << val.to_amf(state)
-              end
-            end
-            output
-          end
-          
-          private
-          
-          def header_for_array(state = nil)
-            header = self.length << 1 # make room for a low bit of 1
-            header = header | 1 # set the low bit to 1
-            AMF::Pure::IOHelpers.pack_integer(header, state)
-          end
-        end
-   
-        module Object
-          def to_amf(state = nil, *)
-            output = ''
-            output << AMF3_OBJECT_MARKER
-            
-            state = SerializerState.from_state(state) 
-            if cache_header = state.object_cache(self)
-              output << cache_header
-            else
-              if state && !state.dynamic
-                state.dynamic = true
-                output << DYNAMIC_OBJECT
-              end
-              output << ANONYMOUS_OBJECT
-              output << serialize_properties(state)
-              output << CLOSE_DYNAMIC_OBJECT
-            end
-          end
-          
-          protected
-          
-          def amf_id
-            object_id
-          end
-          
-          private
-            
-          # unmapped object
-          #OPTIMIZE: keep a hash of classes that come through here
-          # and store in a hash keyed by obj.class
-          # if the obj.class is in the hash, loop over the hash of
-          # public methods
-          # find all public methods belonging to this object alone
-          def serialize_properties(state = nil)
-            output = ''
-            self.public_methods(false).each do |method_name|
-              # and write them to the stream if they take no arguments
-              method_def = self.method(method_name)
-              if method_def.arity == 0
-                output << method_name.to_s.write_string(state)
-                output << self.send(method_name).to_amf(state)
-              end
-            end
-            output
-          end
-        end
-        
-        module Hash
-          private
-          
-          def serialize_properties(state = nil)
-            output = ''
-            self.each do |key, value|
-              output << key.to_s.write_string(state) # easy for both string and symbol keys
-              output << value.to_amf(state)
-            end
-            output
-          end
-        end
-        
-        module Time
-          def to_amf(state = nil, *)
-            output = ''
-            output << AMF3_DATE_MARKER
-            
-            self.utc unless self.utc?
-            seconds = (self.to_f * 1000).to_i
-            
-            if state && (cache_header = state.object_cache(self))
-              output << cache_header
-            else
-              output << AMF::Pure::IOHelpers.pack_integer(AMF3_NULL_MARKER)
-              output << AMF::Pure::IOHelpers.pack_double(seconds, state)
-            end
-          end
-        end
-        
-        module Date
-          def to_amf(state = nil, *)
-            output = ''
-            output << AMF3_DATE_MARKER
-            
-            seconds = ((self.strftime("%s").to_i) * 1000).to_i
-            
-            if state && (cache_header = state.object_cache(self))
-              output << cache_header
-            else
-              output << AMF::Pure::IOHelpers.pack_integer(AMF3_NULL_MARKER)
-              output << AMF::Pure::IOHelpers.pack_double(seconds, state)
-            end
-          end
-        end
-        
-        module REXML
-          class Document
-            def to_amf(state = nil, *)
-              AMF.write_xml(self, state)
-            end
-          end
-        end
-      end 
+      end
     end
   end
 end
