@@ -31,4 +31,15 @@ describe "when handling requests" do
 end
 
 describe "when handling responses" do
+  def readBinaryRequest(binary_path)
+    File.open(File.dirname(__FILE__) + '/../fixtures/request/' + binary_path).read
+  end
+
+  it "should serialize a simple call" do
+    resp = AMF::Response.new
+    resp.messages << AMF::Message.new('/1/onResult', '', 'hello')
+
+    expected = readBinaryRequest('simple-response.bin')
+    resp.serialize.should == expected
+  end
 end
