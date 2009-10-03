@@ -1,8 +1,8 @@
-require File.dirname(__FILE__) + '/spec_helper.rb'
+require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe "when handling requests" do
   def readBinaryRequest(binary_path)
-    File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path).read
+    File.open(File.dirname(__FILE__) + '/../fixtures/request/' + binary_path).read
   end
 
   it "should handle remoting message from remote object" do

@@ -7,9 +7,7 @@ require 'amf/common'
 
 module AMF
   begin
-    # change to test c extension
-    #require 'amf/ext'
-    require 'amf/pure'
+    raise LoadError, 'C extensions not implemented'
   rescue LoadError
     require 'amf/pure'
   end

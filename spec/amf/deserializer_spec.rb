@@ -1,9 +1,9 @@
-require File.dirname(__FILE__) + '/spec_helper.rb'
+require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe "when deserializing" do
   #File Utilities
   def readBinaryObject(binary_path)
-    File.open(File.dirname(__FILE__) + '/fixtures/objects/' + binary_path).read
+    File.open(File.dirname(__FILE__) + '/../fixtures/objects/' + binary_path).read
   end
 
   describe "AMF0" do

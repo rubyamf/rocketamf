@@ -105,7 +105,7 @@ module AMF
       # Get class name
       if obj.is_a?(String)
         ruby_class_name = obj
-      elsif obj.is_a?(TypedHash)
+      elsif obj.is_a?(Values::TypedHash)
         ruby_class_name = obj.type
       else
         ruby_class_name = obj.class.name
@@ -121,7 +121,7 @@ module AMF
       ruby_class_name = mappings.get_ruby_class_name as_class_name
       if ruby_class_name.nil?
         # Populate a simple hash, since no mapping
-        return TypedHash.new(as_class_name)
+        return Values::TypedHash.new(as_class_name)
       else
         ruby_class = ruby_class_name.split('::').inject(Kernel) {|scope, const_name| scope.const_get(const_name)}
         return ruby_class.new

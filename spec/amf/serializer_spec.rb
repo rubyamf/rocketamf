@@ -1,11 +1,11 @@
-require File.dirname(__FILE__) + '/spec_helper.rb'
+require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 require 'rexml/document'
 
 describe "when serializing" do
   describe "AMF3" do
     def readBinaryObject(binary_path)
-      File.open('spec/fixtures/objects/' + binary_path).read
+    File.open(File.dirname(__FILE__) + '/../fixtures/objects/' + binary_path).read
     end
 
     describe "simple messages" do

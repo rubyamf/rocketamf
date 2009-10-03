@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/spec_helper.rb'
+require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe AMF::ClassMapping do
   before(:all) do
@@ -41,7 +41,7 @@ describe AMF::ClassMapping do
 
     it "should return a hash with original type if not mapped" do
       obj = @mapper.get_ruby_obj('UnmappedClass')
-      obj.should be_a(AMF::TypedHash)
+      obj.should be_a(AMF::Values::TypedHash)
       obj.type.should == 'UnmappedClass'
     end
   end
@@ -53,7 +53,7 @@ describe AMF::ClassMapping do
     end
 
     it "should populate a typed hash" do
-      obj = @mapper.populate_ruby_obj AMF::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
+      obj = @mapper.populate_ruby_obj AMF::Values::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
       obj[:prop_a].should == 'Data'
     end
 
