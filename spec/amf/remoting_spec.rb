@@ -1,12 +1,8 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe "when handling requests" do
-  def readBinaryRequest(binary_path)
-    File.open(File.dirname(__FILE__) + '/../fixtures/request/' + binary_path).read
-  end
-
   it "should handle remoting message from remote object" do
-    input = readBinaryRequest("remotingMessage.bin")
+    input = request_fixture("remotingMessage.bin")
     req = AMF::Request.new.populate_from_stream(input)
 
     req.headers.length.should == 0
@@ -18,7 +14,7 @@ describe "when handling requests" do
   end
 
   it "should handle command message from remote object" do
-    input = readBinaryRequest("commandMessage.bin")
+    input = request_fixture("commandMessage.bin")
     req = AMF::Request.new.populate_from_stream(input)
 
     req.headers.length.should == 0
@@ -31,15 +27,11 @@ describe "when handling requests" do
 end
 
 describe "when handling responses" do
-  def readBinaryRequest(binary_path)
-    File.open(File.dirname(__FILE__) + '/../fixtures/request/' + binary_path).read
-  end
-
   it "should serialize a simple call" do
     resp = AMF::Response.new
     resp.messages << AMF::Message.new('/1/onResult', '', 'hello')
 
-    expected = readBinaryRequest('simple-response.bin')
+    expected = request_fixture('simple-response.bin')
     resp.serialize.should == expected
   end
 end
