@@ -142,7 +142,7 @@ module AMF
 
           # Write out properties
           props = ClassMapper.props_for_serialization obj
-          props.each do |key, val|
+          props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
             write_utf8_vr key.to_s, stream
             serialize val, stream
           end

@@ -79,7 +79,8 @@ describe AMF::ClassMapping do
   describe "property extractor" do
     it "should extract hash properties" do
       hash = {:a => 'test1', :b => 'test2'}
-      @mapper.props_for_serialization(hash).should == hash
+      props = @mapper.props_for_serialization(hash)
+      props.should == {'a' => 'test1', 'b' => 'test2'}
     end
 
     it "should extract object properties" do
@@ -88,7 +89,7 @@ describe AMF::ClassMapping do
       obj.prop_b = 'Test B'
 
       hash = @mapper.props_for_serialization obj
-      hash.should == {:prop_a => 'Test A', :prop_b => 'Test B', :prop_c => nil}
+      hash.should == {'prop_a' => 'Test A', 'prop_b' => 'Test B', 'prop_c' => nil}
     end
 
     it "should allow custom serializers" do

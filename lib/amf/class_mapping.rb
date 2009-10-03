@@ -160,14 +160,19 @@ module AMF
       end
 
       # Handle hashes
-      return ruby_obj if ruby_obj.is_a?(Hash)
+      if ruby_obj.is_a?(Hash)
+        # Stringify keys to make it easier later on and allow sorting
+        h = {}
+        ruby_obj.each {|k,v| h[k.to_s] = v}
+        return h
+      end
 
       # Fallback serializer
       props = {}
       ruby_obj.public_methods(false).each do |method_name|
         # Add them to the prop hash if they take no arguments
         method_def = ruby_obj.method(method_name)
-        props[method_name.to_sym] = ruby_obj.send(method_name) if method_def.arity == 0
+        props[method_name] = ruby_obj.send(method_name) if method_def.arity == 0
       end
       props
     end
