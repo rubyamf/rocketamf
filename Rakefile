@@ -39,8 +39,6 @@ spec = Gem::Specification.new do |s|
   s.homepage = 'http://github.com/warhammerkid/rack-amf'
 
   s.platform = Gem::Platform::RUBY
-
-  s.add_dependency 'bindata', '>= 1.0.0'
 end
 
 Rake::GemPackageTask.new spec do |pkg|

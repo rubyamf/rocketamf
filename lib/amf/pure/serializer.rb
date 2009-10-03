@@ -153,7 +153,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::IOHelpers
+      include AMF::Pure::WriteIOHelpers
 
       def write_utf8_vr str, stream
         if str == ''

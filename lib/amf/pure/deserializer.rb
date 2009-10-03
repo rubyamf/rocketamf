@@ -1,4 +1,3 @@
-require 'bindata'
 require 'amf/pure/io_helpers'
 
 module AMF
@@ -12,7 +11,7 @@ module AMF
       end
 
       def deserialize(source, type=nil)
-        source = BinData::IO.new(source) unless BinData::IO === source
+        source = StringIO.new(source) unless StringIO === source
         type = read_int8 source unless type
         case type
         when AMF0_NUMBER_MARKER
@@ -49,7 +48,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::IOHelpers
+      include AMF::Pure::ReadIOHelpers
 
       def read_number source
         res = read_double source
@@ -62,7 +61,7 @@ module AMF
 
       def read_string source, long=false
         len = long ? read_word32_network(source) : read_word16_network(source)
-        source.readbytes(len)
+        source.read(len)
       end
 
       def read_object source
@@ -154,7 +153,7 @@ module AMF
       end
 
       def deserialize(source, type=nil)
-        source = BinData::IO.new(source) unless BinData::IO === source
+        source = StringIO.new(source) unless StringIO === source
         type = read_int8 source unless type
         case type
           when AMF3_UNDEFINED_MARKER
@@ -187,7 +186,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::IOHelpers
+      include AMF::Pure::ReadIOHelpers
 
       def read_integer source
         n = 0
@@ -237,7 +236,7 @@ module AMF
           #a string
           str = "" #if stringRequest
           if length > 0
-            str = source.readbytes(length)
+            str = source.read(length)
             @string_cache << str
           end
           return str

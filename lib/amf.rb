@@ -5,8 +5,6 @@ require 'rubygems'
 require 'amf/version'
 require 'amf/common'
 
-gem 'bindata', '>= 1.0.0'
-
 module AMF
   begin
     # change to test c extension

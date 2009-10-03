@@ -1,30 +1,30 @@
 module AMF
   module Pure
-    module IOHelpers #:nodoc:
+    module ReadIOHelpers #:nodoc:
       def read_int8 source
-        source.readbytes(1).unpack('c').first
+        source.read(1).unpack('c').first
       end
 
       def read_word8 source
-        source.readbytes(1).unpack('C').first
+        source.read(1).unpack('C').first
       end
 
       def read_double source
-        source.readbytes(8).unpack('G').first
+        source.read(8).unpack('G').first
       end
 
       def read_word16_network source
-        source.readbytes(2).unpack('n').first
+        source.read(2).unpack('n').first
       end
 
       def read_int16_network source
-        str = source.readbytes(2)
+        str = source.read(2)
         str.reverse! if byte_order_little? # swap bytes as native=little (and we want network)
         str.unpack('s').first
       end
 
       def read_word32_network source
-        source.readbytes(4).unpack('N').first
+        source.read(4).unpack('N').first
       end
 
       def byte_order
@@ -38,7 +38,9 @@ module AMF
       def byte_order_little?
         (byte_order == :LittleEndian) ? true : false;
       end
+    end
 
+    module WriteIOHelpers #:nodoc:
       def pack_integer(integer)
         integer = integer & 0x1fffffff
         if(integer < 0x80)
