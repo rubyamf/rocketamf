@@ -18,8 +18,6 @@ describe AMF::ClassMapping::MappingSet do
   end
 
   it "should map special classes by default" do
-    pending("implement special AMF classes")
-
     SPECIAL_CLASSES = [
       'flex.messaging.messages.AcknowledgeMessage',
       'flex.messaging.messages.ErrorMessage',

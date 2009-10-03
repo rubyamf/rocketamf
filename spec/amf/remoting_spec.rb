@@ -9,36 +9,24 @@ describe "when handling requests" do
     input = readBinaryRequest("remotingMessage.bin")
     req = AMF::Request.new.populate_from_stream(input)
 
-    expected = [{
-      :timeToLive => 0,
-      :body => [true],
-      :timestamp => 0,
-      :source => "WritesController",
-      :destination => "rubyamf",
-      :operation => "save",
-      :headers => {:DSEndpoint => nil, :DSId => "nil"},
-      :messageId => "FE4AF2BC-DD3C-5470-05D8-9971D51FF89D",
-      :clientId => nil
-    }]
-    req.messages[0].data.should == expected
+    req.headers.length.should == 0
+    req.messages.length.should == 1
+    message = req.messages[0].data[0]
+    message.should be_a(AMF::Values::RemotingMessage)
+    message.messageId.should == "FE4AF2BC-DD3C-5470-05D8-9971D51FF89D"
+    message.body.should == [true]
   end
 
   it "should handle command message from remote object" do
     input = readBinaryRequest("commandMessage.bin")
     req = AMF::Request.new.populate_from_stream(input)
 
-    expected = [{
-      :correlationId => "",
-      :destination => "",
-      :operation => 5,
-      :body => {},
-      :headers => {:DSMessagingVersion => 1, :DSId => "nil"},
-      :timeToLive => 0,
-      :messageId => "7B0ACE15-8D57-6AE5-B9D4-99C2D32C8246",
-      :timestamp => 0,
-      :clientId => nil
-    }]
-    req.messages[0].data.should == expected
+    req.headers.length.should == 0
+    req.messages.length.should == 1
+    message = req.messages[0].data[0]
+    message.should be_a(AMF::Values::CommandMessage)
+    message.messageId.should == "7B0ACE15-8D57-6AE5-B9D4-99C2D32C8246"
+    message.body.should == {}
   end
 end
 

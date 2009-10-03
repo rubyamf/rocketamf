@@ -7,6 +7,10 @@ module AMF
         @ref_cache = SerializerCache.new
       end
 
+      def version
+        0
+      end
+
       def serialize obj, stream = ""
         if @ref_cache[obj] != nil
           # Write reference header
@@ -22,9 +26,13 @@ module AMF
         @object_cache = SerializerCache.new
       end
 
+      def version
+        3
+      end
+
       def serialize obj, stream = ""
         if obj.respond_to?(:to_amf)
-          stream << obj.to_amf
+          stream << obj.to_amf(self)
         elsif obj.is_a?(NilClass)
           write_null stream
         elsif obj.is_a?(TrueClass)

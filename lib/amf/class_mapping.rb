@@ -1,4 +1,6 @@
 require 'amf/values/typed_hash'
+require 'amf/values/array_collection'
+require 'amf/values/messages'
 
 module AMF
   # == Class Mapping
@@ -20,6 +22,15 @@ module AMF
       def initialize #:nodoc:
         @as_mappings = {}
         @ruby_mappings = {}
+
+        # Map defaults
+        map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'AMF::Values::AbstractMessage'
+        map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'AMF::Values::RemotingMessage'
+        map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'AMF::Values::AsyncMessage'
+        map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'AMF::Values::CommandMessage'
+        map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'AMF::Values::AcknowledgeMessage'
+        map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'AMF::Values::ErrorMessage'
+        map :as => 'flex.messaging.io.ArrayCollection', :ruby => 'AMF::Values::ArrayCollection'
       end
 
       # Map a given AS class to a ruby class.
