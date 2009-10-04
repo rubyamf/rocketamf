@@ -136,14 +136,11 @@ module AMF
           # Cache object
           @object_cache.add_obj obj
 
-          class_name = ClassMapper.get_as_class_name obj
-
-          # Any object that has a class name isn't dynamic
-          unless class_name
-            stream << DYNAMIC_OBJECT
-          end
+          # Always serialize things as dynamic objects
+          stream << DYNAMIC_OBJECT
 
           # Write class name/anonymous
+          class_name = ClassMapper.get_as_class_name obj
           if class_name
             write_utf8_vr class_name, stream
           else

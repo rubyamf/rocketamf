@@ -34,4 +34,16 @@ describe "when handling responses" do
     expected = request_fixture('simple-response.bin')
     resp.serialize.should == expected
   end
+
+  it "should serialize a AcknowledgeMessage response" do
+    ak = AMF::Values::AcknowledgeMessage.new
+    ak.clientId = "7B0ACE15-8D57-6AE5-B9D4-99C2D32C8246"
+    ak.messageId = "7B0ACE15-8D57-6AE5-B9D4-99C2D32C8246"
+    ak.timestamp = 0
+    resp = AMF::Response.new
+    resp.messages << AMF::Message.new('/1/onResult', '', ak)
+
+    expected = request_fixture('acknowledge-response.bin')
+    resp.serialize.should == expected
+  end
 end

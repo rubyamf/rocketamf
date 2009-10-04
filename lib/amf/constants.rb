@@ -34,12 +34,12 @@ module AMF
   AMF3_XML_MARKER          =  0x0B #"\v"
   AMF3_BYTE_ARRAY_MARKER   =  0x0C #"\f"
 
-  # Other Markers, some reused
-  EMPTY_STRING             = AMF3_NULL_MARKER
-  ANONYMOUS_OBJECT         = AMF3_NULL_MARKER
-  DYNAMIC_OBJECT           = AMF3_XML_MARKER
-  CLOSE_DYNAMIC_OBJECT     = AMF3_NULL_MARKER
-  CLOSE_DYNAMIC_ARRAY      = AMF3_NULL_MARKER
+  # Other Markers
+  EMPTY_STRING             = 0x01
+  ANONYMOUS_OBJECT         = 0x01
+  DYNAMIC_OBJECT           = 0x0B
+  CLOSE_DYNAMIC_OBJECT     = 0x01
+  CLOSE_DYNAMIC_ARRAY      = 0x01
 
   MAX_INTEGER              = 268435455
   MIN_INTEGER              = -268435456
