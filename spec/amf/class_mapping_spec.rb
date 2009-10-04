@@ -92,6 +92,17 @@ describe AMF::ClassMapping do
       hash.should == {'prop_a' => 'Test A', 'prop_b' => 'Test B', 'prop_c' => nil}
     end
 
+    it "should extract inherited object properties" do
+      class RubyClass2 < RubyClass
+      end
+      obj = RubyClass2.new
+      obj.prop_a = 'Test A'
+      obj.prop_b = 'Test B'
+
+      hash = @mapper.props_for_serialization obj
+      hash.should == {'prop_a' => 'Test A', 'prop_b' => 'Test B', 'prop_c' => nil}
+    end
+
     it "should allow custom serializers" do
       class CustomSerializer
         def can_handle? obj

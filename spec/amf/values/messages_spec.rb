@@ -6,7 +6,7 @@ describe AMF::Values::AbstractMessage do
   end
 
   it "should generate conforming uuids" do
-    @message.rand_uuid.should =~ /[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/i
+    @message.send(:rand_uuid).should =~ /[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/i
   end
 end
 

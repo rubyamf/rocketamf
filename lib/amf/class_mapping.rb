@@ -194,7 +194,8 @@ module AMF
 
       # Fallback serializer
       props = {}
-      ruby_obj.public_methods(false).each do |method_name|
+      @ignored_props ||= Object.new.public_methods
+      (ruby_obj.public_methods - @ignored_props).each do |method_name|
         # Add them to the prop hash if they take no arguments
         method_def = ruby_obj.method(method_name)
         props[method_name] = ruby_obj.send(method_name) if method_def.arity == 0
