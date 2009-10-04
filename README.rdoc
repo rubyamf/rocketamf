@@ -2,6 +2,10 @@
 
 What will eventually become a full featured AMF gateway implemented as a Rack middleware and AMF0/3 serializers and deserializers. Currently includes a fully compliant AMF0/AMF3 deserializer, AMF3 serializer, and a Rack middleware that supports both standard AMF calls and <tt>RemoteObject</tt> calls.
 
+== INSTALL:
+
+  gem install rack-amf --source="http://gemcutter.org"
+
 == EXAMPLE:
 
 config.ru:
