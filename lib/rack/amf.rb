@@ -1,21 +1,17 @@
 require 'rack'
 require 'amf'
 
-module Rack
-  class AMF
-    APPLICATION_AMF = 'application/x-amf'.freeze
+require 'rack/amf/application'
+require 'rack/amf/service_manager'
+require 'rack/amf/request'
+require 'rack/amf/response'
 
-    def call env
-      if env['CONTENT_TYPE'] != APPLICATION_AMF
-        return [200, {"Content-Type" => "text/plain"}, ["Hello From Rack::AMF"]]
-      end
+module Rack::AMF
+  APPLICATION_AMF = 'application/x-amf'.freeze
 
-      req = env['rack.input'].read
-      ::File.open('request.bin', 'w') {|f| f.write req}
-      req_obj = ::AMF.deserializer.new().deserialize_request(req)
-      puts req_obj.inspect
+  Services = Rack::AMF::ServiceManager.new
 
-      [404, {"Content-Type" => "text/plain"}, [""]]
-    end
+  def self.new app, mode=:internal
+    Rack::AMF::Application.new(app, mode)
   end
 end
