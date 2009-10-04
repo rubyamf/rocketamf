@@ -2,6 +2,7 @@ require 'amf/pure/io_helpers'
 
 module AMF
   module Pure
+    # AMF request object wrapper, it is responsible for deserializing AMF requests
     class Request
       attr_reader :amf_version, :headers, :messages
 
@@ -47,6 +48,7 @@ module AMF
       include AMF::Pure::ReadIOHelpers
     end
 
+    # AMF response object wrapper, it is responsible for serializing the AMF response
     class Response
       attr_accessor :amf_version, :headers, :messages
 
@@ -93,6 +95,7 @@ module AMF
       include AMF::Pure::WriteIOHelpers
     end
 
+    # AMF::Request or AMF::Response header
     class Header
       attr_accessor :name, :must_understand, :data
 
@@ -103,6 +106,7 @@ module AMF
       end
     end
 
+    # AMF::Request or AMF::Response message
     class Message
       attr_accessor :target_uri, :response_uri, :data
 

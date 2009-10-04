@@ -16,8 +16,8 @@ desc 'Generate documentation for the rubyamf plugin.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title    = 'Rack AMF'
-  rdoc.options << '--line-numbers' << '--main' << 'README.txt'
-  rdoc.rdoc_files.include('README.txt')
+  rdoc.options << '--line-numbers' << '--main' << 'README.rdoc'
+  rdoc.rdoc_files.include('README.rdoc')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
 
@@ -26,13 +26,13 @@ spec = Gem::Specification.new do |s|
   s.version = '0.0.1'
   s.summary = 'AMF serializer/deserializer and AMF gateway packaged as a rack middleware'
 
-  s.files        = FileList['README.txt', 'Rakefile', 'History.txt', 'lib/**/*.rb', 'spec/**/*.rb']
+  s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb']
   s.require_path = 'lib'
   s.test_files   = Dir[*['spec/**/*_spec.rb']]
 
   s.has_rdoc         = true
-  s.extra_rdoc_files = ['README.txt']
-  s.rdoc_options     = ['--line-numbers', '--main', 'README.txt']
+  s.extra_rdoc_files = ['README.rdoc']
+  s.rdoc_options     = ['--line-numbers', '--main', 'README.rdoc']
 
   s.authors  = ['Tony Hillerson', 'Stephen Augenstein']
   s.email    = 'perl.programmer@gmail.com'

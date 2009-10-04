@@ -1,7 +1,7 @@
 module AMF
-  module Values
-    # Base class for all special AS3 response messages
-    # Maps to <tt>flex.messaging.messages.AbstractMessage</tt>
+  module Values #:nodoc:
+    # Base class for all special AS3 response messages. Maps to
+    # <tt>flex.messaging.messages.AbstractMessage</tt>
     class AbstractMessage
       attr_accessor :clientId
       attr_accessor :destination

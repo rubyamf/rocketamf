@@ -16,6 +16,48 @@ module AMF
   #     m.map :as => 'AsClass', :ruby => 'RubyClass'
   #     m.map :as => 'vo.User', :ruby => 'User'
   #   end
+  #
+  # == Object Population/Serialization
+  #
+  # In addition to handling class name mapping, it also provides helper methods
+  # for populating ruby objects from AMF and extracting properties from ruby objects
+  # for serialization. Support for hash-like objects and objects using
+  # <tt>attr_accessor</tt> for properties is currently built in, but custom classes
+  # may need custom support. As such, it is possible to create a custom populator
+  # or serializer.
+  #
+  # Populators are processed in insert order and must respond to the <tt>can_handle?</tt>
+  # and <tt>populate</tt> methods.
+  #
+  # Example:
+  #
+  #   class CustomPopulator
+  #     def can_handle? obj
+  #       true
+  #     end
+  #   
+  #     def populate obj, props, dynamic_props
+  #       obj.merge! props
+  #       obj.merge!(dynamic_props) if dynamic_props
+  #     end
+  #   end
+  #   AMF::ClassMapper.object_populators << CustomPopulator.new
+  #
+  # Serializers are also processed in insert order and must respond to the
+  # <tt>can_handle?</tt> and <tt>serialize</tt> methods.
+  #
+  # Example:
+  #
+  #   class CustomSerializer
+  #     def can_handle? obj
+  #       true
+  #     end
+  #   
+  #     def serialize obj
+  #       {}
+  #     end
+  #   end
+  #   AMF::ClassMapper.object_serializers << CustomSerializer.new
   class ClassMapping
     # Container for all mapped classes
     class MappingSet
@@ -59,39 +101,10 @@ module AMF
       end
     end
 
-    # Array of custom object populators. Processed in array order, they must
-    # respond to the "can_handle?" and "populate" methods.
-    #
-    # Example:
-    #
-    #   class CustomPopulator
-    #     def can_handle? obj
-    #       true
-    #     end
-    #   
-    #     def populate obj, props, dynamic_props
-    #       obj.merge! props
-    #       obj.merge!(dynamic_props) if dynamic_props
-    #     end
-    #   end
-    #   AMF::ClassMapper.object_populators << CustomPopulator.new
+    # Array of custom object populators.
     attr_reader :object_populators
 
-    # Array of custom object serializers. Processed in array order, they must
-    # respond to the "can_handle?" and "serialize" methods.
-    #
-    # Example:
-    #
-    #   class CustomSerializer
-    #     def can_handle? obj
-    #       true
-    #     end
-    #   
-    #     def serialize obj
-    #       {}
-    #     end
-    #   end
-    #   AMF::ClassMapper.object_serializers << CustomSerializer.new
+    # Array of custom object serializers.
     attr_reader :object_serializers
 
     def initialize #:nodoc:
@@ -99,20 +112,21 @@ module AMF
       @object_serializers = []
     end
 
-    # Define class mappings in the block
+    # Define class mappings in the block. Block is passed a MappingSet object as
+    # the first parameter.
     #
     # Example:
     #
     #   AMF::ClassMapper.define do |m|
     #     m.map :as => 'AsClass', :ruby => 'RubyClass'
     #   end
-    def define
+    def define #:yields: mapping_set
       yield mappings
     end
 
     # Returns the AS class name for the given ruby object. Will also take a string
     # containing the ruby class name
-    def get_as_class_name obj #:nodoc:
+    def get_as_class_name obj
       # Get class name
       if obj.is_a?(String)
         ruby_class_name = obj
@@ -128,7 +142,7 @@ module AMF
 
     # Instantiates a ruby object using the mapping configuration based on the
     # source AS class name. If there is no mapping defined, it returns a hash.
-    def get_ruby_obj as_class_name #:nodoc:
+    def get_ruby_obj as_class_name
       ruby_class_name = mappings.get_ruby_class_name as_class_name
       if ruby_class_name.nil?
         # Populate a simple hash, since no mapping
@@ -140,7 +154,7 @@ module AMF
     end
 
     # Populates the ruby object using the given properties
-    def populate_ruby_obj obj, props, dynamic_props=nil #:nodoc:
+    def populate_ruby_obj obj, props, dynamic_props=nil
       # Process custom populators
       @object_populators.each do |p|
         next unless p.can_handle?(obj)
@@ -163,7 +177,7 @@ module AMF
 
     # Extracts all exportable properties from the given ruby object and returns
     # them in a hash
-    def props_for_serialization ruby_obj #:nodoc:
+    def props_for_serialization ruby_obj
       # Proccess custom serializers
       @object_serializers.each do |s|
         next unless s.can_handle?(ruby_obj)

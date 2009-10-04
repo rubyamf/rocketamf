@@ -145,7 +145,7 @@ module AMF
 
     # AMF3 implementation of deserializer, loaded automatically by the AMF0
     # deserializer when needed
-    class AMF3Deserializer #:nodoc:
+    class AMF3Deserializer
       def initialize
         @string_cache = []
         @object_cache = []

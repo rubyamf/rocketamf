@@ -2,6 +2,7 @@ require 'amf/pure/io_helpers'
 
 module AMF
   module Pure
+    # AMF0 implementation of serializer
     class Serializer
       def initialize
         @ref_cache = SerializerCache.new
@@ -18,6 +19,7 @@ module AMF
       end
     end
 
+    # AMF3 implementation of serializer
     class AMF3Serializer
       attr_reader :string_cache
 
@@ -181,8 +183,7 @@ module AMF
       end
     end
 
-    private
-    class SerializerCache
+    class SerializerCache #:nodoc:
       def initialize
         @cache_index = 0
         @store = {}

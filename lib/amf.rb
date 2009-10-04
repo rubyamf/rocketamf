@@ -14,6 +14,4 @@ module AMF
   require 'amf/class_mapping'
 
   ClassMapper = AMF::ClassMapping.new
-
-  AMF_LOADED = true
 end

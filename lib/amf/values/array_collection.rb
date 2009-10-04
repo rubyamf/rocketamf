@@ -1,5 +1,5 @@
 module AMF
-  module Values
+  module Values #:nodoc:
     class ArrayCollection
       def externalized_data=(data)
         @data = data
