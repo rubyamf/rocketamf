@@ -34,6 +34,9 @@ module AMF
           response_uri = stream.read(read_word16_network(stream))
           length = read_word32_network stream
           data = AMF.deserialize stream
+          if data.is_a?(Array) && data.length == 1 && data[0].is_a?(::AMF::Values::AbstractMessage)
+            data = data[0]
+          end
           @messages << Message.new(target_uri, response_uri, data)
         end
 
