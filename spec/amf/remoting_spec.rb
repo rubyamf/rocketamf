@@ -29,6 +29,7 @@ end
 describe "when handling responses" do
   it "should serialize a simple call" do
     resp = AMF::Response.new
+    resp.amf_version = 3
     resp.messages << AMF::Message.new('/1/onResult', '', 'hello')
 
     expected = request_fixture('simple-response.bin')
@@ -41,6 +42,7 @@ describe "when handling responses" do
     ak.messageId = "7B0ACE15-8D57-6AE5-B9D4-99C2D32C8246"
     ak.timestamp = 0
     resp = AMF::Response.new
+    resp.amf_version = 3
     resp.messages << AMF::Message.new('/1/onResult', '', ak)
 
     expected = request_fixture('acknowledge-response.bin')

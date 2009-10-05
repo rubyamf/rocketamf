@@ -17,7 +17,11 @@ describe AMF::Values::ErrorMessage do
     @message = AMF::Values::ErrorMessage.new(nil, @e)
   end
 
-  it "should serialize as a hash in AMF0"
+  it "should serialize as a hash in AMF0" do
+    response = AMF::Response.new
+    response.messages << AMF::Message.new('1/onStatus', '', @message)
+    response.serialize.should == request_fixture('amf0-error-response.bin')
+  end
 
   it "should extract exception properties correctly" do
     @message.faultCode.should == 'Exception'

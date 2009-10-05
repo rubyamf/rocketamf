@@ -53,7 +53,7 @@ module AMF
       attr_accessor :amf_version, :headers, :messages
 
       def initialize
-        @amf_version = 3
+        @amf_version = 0
         @headers = []
         @messages = []
       end
