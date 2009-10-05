@@ -1,6 +1,10 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe "when deserializing" do
+  before :each do
+    AMF::ClassMapper.reset
+  end
+
   describe "AMF0" do
     it "should deserialize numbers" do
       input = object_fixture('amf0-number.bin')
@@ -58,11 +62,19 @@ describe "when deserializing" do
       output.should == ['a', 'b', 'c', 'd']
     end
 
+    it "should serialize strict arrays" do
+      input = object_fixture('amf0-strict-array.bin')
+      output = AMF.deserialize(input, 0)
+      output.should == ['a', 'b', 'c', 'd']
+    end
+
     it "should deserialize dates" do
       input = object_fixture('amf0-date.bin')
       output = AMF.deserialize(input, 0)
       output.should == Time.utc(2003, 2, 13, 5)
     end
+
+    it "should deserialize XML"
 
     it "should deserialize an unmapped object as a dynamic anonymous object" do
       input = object_fixture("amf0-typed-object.bin")

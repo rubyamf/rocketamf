@@ -5,7 +5,7 @@ module AMF
     # AMF0 implementation of serializer
     class Serializer
       def initialize
-        @ref_cache = SerializerCache.new
+        @ref_cache = SerializerCache.new :object
       end
 
       def version
@@ -13,9 +13,117 @@ module AMF
       end
 
       def serialize obj, stream = ""
-        if @ref_cache[obj] != nil
-          # Write reference header
+        if obj.respond_to?(:to_amf)
+          stream << obj.to_amf(self)
+        elsif @ref_cache[obj] != nil
+          write_reference @ref_cache[obj], stream
+        elsif obj.is_a?(NilClass)
+          write_null stream
+        elsif obj.is_a?(TrueClass) || obj.is_a?(FalseClass)
+          write_boolean obj, stream
+        elsif obj.is_a?(Float) || obj.is_a?(Integer)
+          write_number obj, stream
+        elsif obj.is_a?(Symbol) || obj.is_a?(String)
+          write_string obj.to_s, stream
+        elsif obj.is_a?(Time)
+          write_date obj, stream
+        elsif obj.is_a?(Array)
+          write_array obj, stream
+        elsif obj.is_a?(Hash)
+          write_hash obj, stream
+        elsif obj.is_a?(Object)
+          write_object obj, stream
         end
+        stream
+      end
+
+      def write_null stream
+        stream << AMF0_NULL_MARKER
+      end
+
+      def write_boolean bool, stream
+        stream << AMF0_BOOLEAN_MARKER
+        stream << pack_int8(bool ? 1 : 0)
+      end
+
+      def write_number num, stream
+        stream << AMF0_NUMBER_MARKER
+        stream << pack_double(num)
+      end
+
+      def write_string str, stream
+        len = str.length
+        if len > 2**16-1
+          stream << AMF0_LONG_STRING_MARKER
+          stream << pack_word32_network(len)
+        else
+          stream << AMF0_STRING_MARKER
+          stream << pack_int16_network(len)
+        end
+        stream << str
+      end
+
+      def write_date date, stream
+        stream << AMF0_DATE_MARKER
+
+        date.utc unless date.utc?
+        seconds = (date.to_f * 1000).to_i
+        stream << pack_double(seconds)
+
+        stream << pack_int16_network(0)
+      end
+
+      def write_reference index, stream
+        stream << AMF0_REFERENCE_MARKER
+        stream << pack_int16_network(index)
+      end
+
+      def write_array array, stream
+        @ref_cache.add_obj array
+        stream << AMF0_STRICT_ARRAY_MARKER
+        stream << pack_word32_network(array.length)
+        array.each do |elem|
+          serialize elem, stream
+        end
+      end
+
+      def write_hash hash, stream
+        @ref_cache.add_obj hash
+        stream << AMF0_HASH_MARKER
+        stream << pack_word32_network(hash.length)
+        write_prop_list hash, stream
+      end
+
+      def write_object obj, stream
+        @ref_cache.add_obj obj
+
+        # Is it a typed object?
+        class_name = ClassMapper.get_as_class_name obj
+        if class_name
+          stream << AMF0_TYPED_OBJECT_MARKER
+          stream << pack_int16_network(class_name.length)
+          stream << class_name
+        else
+          stream << AMF0_OBJECT_MARKER
+        end
+
+        write_prop_list obj, stream
+      end
+
+      private
+      include AMF::Pure::WriteIOHelpers
+      def write_prop_list obj, stream
+        # Write prop list
+        props = ClassMapper.props_for_serialization obj
+        props.sort.each do |key, value| # Sort keys before writing
+          stream << pack_int16_network(key.length)
+          stream << key
+          serialize value, stream
+        end
+
+        # Write end
+        stream << pack_int16_network(0)
+        stream << AMF0_OBJECT_END_MARKER
       end
     end
 
@@ -24,8 +132,8 @@ module AMF
       attr_reader :string_cache
 
       def initialize
-        @string_cache = SerializerCache.new
-        @object_cache = SerializerCache.new
+        @string_cache = SerializerCache.new :string
+        @object_cache = SerializerCache.new :object
       end
 
       def version
@@ -121,7 +229,7 @@ module AMF
           header = array.length << 1 # make room for a low bit of 1
           header = header | 1 # set the low bit to 1
           stream << pack_integer(header)
-          stream << CLOSE_DYNAMIC_ARRAY
+          stream << AMF3_CLOSE_DYNAMIC_ARRAY
           array.each do |elem|
             serialize elem, stream
           end
@@ -137,14 +245,14 @@ module AMF
           @object_cache.add_obj obj
 
           # Always serialize things as dynamic objects
-          stream << DYNAMIC_OBJECT
+          stream << AMF3_DYNAMIC_OBJECT
 
           # Write class name/anonymous
           class_name = ClassMapper.get_as_class_name obj
           if class_name
             write_utf8_vr class_name, stream
           else
-            stream << ANONYMOUS_OBJECT
+            stream << AMF3_ANONYMOUS_OBJECT
           end
 
           # Write out properties
@@ -155,7 +263,7 @@ module AMF
           end
 
           # Write close
-          stream << CLOSE_DYNAMIC_OBJECT
+          stream << AMF3_CLOSE_DYNAMIC_OBJECT
         end
       end
 
@@ -164,7 +272,7 @@ module AMF
 
       def write_utf8_vr str, stream
         if str == ''
-          stream << EMPTY_STRING
+          stream << AMF3_EMPTY_STRING
         elsif @string_cache[str] != nil
           write_reference @string_cache[str], stream
         else
@@ -180,34 +288,38 @@ module AMF
       end
     end
 
-    class SerializerCache #:nodoc:
-      def initialize
-        @cache_index = 0
-        @store = {}
+    class SerializerCache #:nodoc:all:
+      def self.new type
+        if type == :string
+          StringCache.new
+        elsif type == :object
+          ObjectCache.new
+        end
       end
 
-      def [] obj
-        @store[object_key(obj)]
-      end
+      class StringCache < Hash
+        def initialize
+          @cache_index = 0
+        end
 
-      def []= obj, value
-        @store[object_key(obj)] = value
-      end
-
-      def add_obj obj
-        key = object_key obj
-        if @store[key].nil?
-          @store[key] = @cache_index
+        def add_obj str
+          self[str] = @cache_index
           @cache_index += 1
         end
       end
 
-      private
-      def object_key obj
-        if obj.is_a?(String)
-          obj
-        else
-          obj.object_id
+      class ObjectCache < Hash
+        def initialize
+          @cache_index = 0
+        end
+
+        def [] obj
+          super(obj.object_id)
+        end
+
+        def add_obj obj
+          self[obj.object_id] = @cache_index
+          @cache_index += 1
         end
       end
     end

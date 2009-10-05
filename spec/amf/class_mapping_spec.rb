@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe AMF::ClassMapping do
   before(:all) do
-    class RubyClass
+    class ClassMappingTest
       attr_accessor :prop_a
       attr_accessor :prop_b
       attr_accessor :prop_c
@@ -12,25 +12,25 @@ describe AMF::ClassMapping do
   before :each do
     @mapper = AMF::ClassMapping.new
     @mapper.define do |m|
-      m.map :as => 'ASClass', :ruby => 'RubyClass'
+      m.map :as => 'ASClass', :ruby => 'ClassMappingTest'
     end
   end
 
   it "should return AS class name for ruby objects" do
-    @mapper.get_as_class_name(RubyClass.new).should == 'ASClass'
-    @mapper.get_as_class_name('RubyClass').should == 'ASClass'
+    @mapper.get_as_class_name(ClassMappingTest.new).should == 'ASClass'
+    @mapper.get_as_class_name('ClassMappingTest').should == 'ASClass'
   end
 
   it "should allow config modification" do
     @mapper.define do |m|
-      m.map :as => 'SecondClass', :ruby => 'RubyClass'
+      m.map :as => 'SecondClass', :ruby => 'ClassMappingTest'
     end
-    @mapper.get_as_class_name(RubyClass.new).should == 'SecondClass'
+    @mapper.get_as_class_name(ClassMappingTest.new).should == 'SecondClass'
   end
 
   describe "ruby object generator" do
     it "should instantiate a ruby class" do
-      @mapper.get_ruby_obj('ASClass').should be_a(RubyClass)
+      @mapper.get_ruby_obj('ASClass').should be_a(ClassMappingTest)
     end
 
     it "should properly instantiate namespaced classes" do
@@ -48,7 +48,7 @@ describe AMF::ClassMapping do
 
   describe "ruby object populator" do
     it "should populate a ruby class" do
-      obj = @mapper.populate_ruby_obj RubyClass.new, {:prop_a => 'Data'}
+      obj = @mapper.populate_ruby_obj ClassMappingTest.new, {:prop_a => 'Data'}
       obj.prop_a.should == 'Data'
     end
 
@@ -84,7 +84,7 @@ describe AMF::ClassMapping do
     end
 
     it "should extract object properties" do
-      obj = RubyClass.new
+      obj = ClassMappingTest.new
       obj.prop_a = 'Test A'
       obj.prop_b = 'Test B'
 
@@ -93,9 +93,9 @@ describe AMF::ClassMapping do
     end
 
     it "should extract inherited object properties" do
-      class RubyClass2 < RubyClass
+      class ClassMappingTest2 < ClassMappingTest
       end
-      obj = RubyClass2.new
+      obj = ClassMappingTest2.new
       obj.prop_a = 'Test A'
       obj.prop_b = 'Test B'
 

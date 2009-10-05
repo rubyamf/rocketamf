@@ -22,3 +22,12 @@ def create_rack_request(binary_path)
   env = {'rack.input' => StringIO.new(request_fixture(binary_path))}
   Rack::AMF::Request.new(env)
 end
+
+# Add reset support to ClassMapping
+module AMF
+  class ClassMapping
+    def reset
+      @mappings = nil
+    end
+  end
+end

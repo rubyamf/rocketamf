@@ -3,6 +3,82 @@ require File.dirname(__FILE__) + '/../spec_helper.rb'
 require 'rexml/document'
 
 describe "when serializing" do
+  before :each do
+    AMF::ClassMapper.reset
+  end
+
+  describe "AMF0" do
+    it "should serialize nils" do
+      output = AMF.serialize(nil, 0)
+      output.should == object_fixture('amf0-null.bin')
+    end
+
+    it "should serialize booleans" do
+      output = AMF.serialize(true, 0)
+      output.should === object_fixture('amf0-boolean.bin')
+    end
+
+    it "should serialize numbers" do
+      output = AMF.serialize(3.5, 0)
+      output.should == object_fixture('amf0-number.bin')
+    end
+
+    it "should serialize strings" do
+      output = AMF.serialize("this is a テスト", 0)
+      output.should == object_fixture('amf0-string.bin')
+    end
+
+    it "should serialize arrays" do
+      output = AMF.serialize(['a', 'b', 'c', 'd'], 0)
+      output.should == object_fixture('amf0-strict-array.bin')
+    end
+
+    it "should serialize references" do
+      class OtherClass
+        attr_accessor :foo, :bar
+      end
+      obj = OtherClass.new
+      obj.foo = "baz"
+      obj.bar = 3.14
+
+      output = AMF.serialize({'0' => obj, '1' => obj}, 0)
+      output.should == object_fixture('amf0-ref-test.bin')
+    end
+
+    it "should serialize dates" do
+      output = AMF.serialize(Time.utc(2003, 2, 13, 5), 0)
+      output.should == object_fixture('amf0-date.bin')
+    end
+  
+    it "should serialize hashes" do
+      output = AMF.serialize({:a => 'b', :c => 'd'}, 0)
+      output.should == object_fixture('amf0-hash.bin')
+    end
+
+    it "should serialize unmapped objects" do
+      class RubyClass
+        attr_accessor :foo, :baz
+      end
+      obj = RubyClass.new
+      obj.foo = "bar"
+
+      output = AMF.serialize(obj, 0)
+      output.should == object_fixture('amf0-untyped-object.bin')
+    end
+
+    it "should serialize mapped objects" do
+      class RubyClass
+        attr_accessor :foo, :baz
+      end
+      obj = RubyClass.new
+      obj.foo = "bar"
+      AMF::ClassMapper.define {|m| m.map :as => 'org.rackAMF.ASClass', :ruby => 'RubyClass'}
+
+      output = AMF.serialize(obj, 0)
+      output.should == object_fixture('amf0-typed-object.bin')
+    end
+  end
+
   describe "AMF3" do
     describe "simple messages" do
       it "should serialize a null" do
