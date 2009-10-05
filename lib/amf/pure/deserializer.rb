@@ -64,15 +64,15 @@ module AMF
         source.read(len)
       end
 
-      def read_object source
+      def read_object source, add_to_ref_cache=true
         obj = {}
+        @ref_cache << obj if add_to_ref_cache
         while true
           key = read_string source
           type = read_int8 source
           break if type == AMF0_OBJECT_END_MARKER
           obj[key.to_sym] = deserialize(source, type)
         end
-        @ref_cache << obj
         obj
       end
 
@@ -93,6 +93,8 @@ module AMF
         if key.to_i.to_s == key
           # Array
           obj = []
+          @ref_cache << obj
+
           obj[key.to_i] = deserialize(source, type)
           while true
             key = read_string source
@@ -102,7 +104,10 @@ module AMF
           end
         else
           # Hash
-          obj = {key.to_sym => deserialize(source, type)}
+          obj = {}
+          @ref_cache << obj
+
+          obj[key.to_sym] = deserialize(source, type)
           while true
             key = read_string source
             type = read_int8 source
@@ -110,17 +115,17 @@ module AMF
             obj[key.to_sym] = deserialize(source, type)
           end
         end
-        @ref_cache << obj
         obj
       end
 
       def read_array source
         len = read_word32_network(source)
         array = []
+        @ref_cache << array
+
         0.upto(len - 1) do
           array << deserialize(source)
         end
-        @ref_cache << array
         array
       end
 
@@ -132,14 +137,17 @@ module AMF
       end
 
       def read_typed_object source
+        # Create object to add to ref cache
         class_name = read_string source
-        props = read_object source
-        @ref_cache.pop
-
         obj = ClassMapper.get_ruby_obj class_name
-        ClassMapper.populate_ruby_obj obj, props, {}
         @ref_cache << obj
-        obj
+
+        # Read object props
+        props = read_object source, false
+
+        # Populate object
+        ClassMapper.populate_ruby_obj obj, props, {}
+        return obj
       end
     end
 
