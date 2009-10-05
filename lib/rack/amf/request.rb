@@ -7,6 +7,11 @@ module Rack::AMF
       @raw_request = ::AMF::Request.new.populate_from_stream(env['rack.input'].read)
     end
 
+    # Returns the request AMF version
+    def version
+      raw_request.amf_version
+    end
+
     # Returns all messages in the request
     def messages
       @raw_request.messages

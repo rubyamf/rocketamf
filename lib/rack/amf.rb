@@ -11,7 +11,7 @@ module Rack::AMF
 
   Services = Rack::AMF::ServiceManager.new
 
-  def self.new app, mode=:internal
-    Rack::AMF::Application.new(app, mode)
+  def self.new app, options={}
+    Rack::AMF::Application.new(app, options)
   end
 end

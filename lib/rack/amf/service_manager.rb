@@ -10,7 +10,7 @@ module Rack::AMF
     end
 
     def handle env
-      env['amf.response'].each_method_call do |method, args|
+      env['rack-amf.response'].each_method_call do |method, args|
         handle_method method, args
       end
     end

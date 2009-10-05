@@ -3,29 +3,30 @@ require 'rack/amf/response'
 
 module Rack::AMF
   class Application
-    def initialize app, mode
+    def initialize app, options={}
       @app = app
-      @mode = mode
+      @options = {:mode => :internal, :url => nil}.merge(options)
     end
 
     def call env
-      if env['CONTENT_TYPE'] != APPLICATION_AMF
-        return [200, {"Content-Type" => "text/plain"}, ["Hello From Rack::AMF"]]
-      end
+      # Check if we should handle it
+      return @app.call(env) if env['CONTENT_TYPE'] != APPLICATION_AMF
+      return @app.call(env) if @options[:url] && env['PATH_INFO'] != @options[:url]
 
       # Wrap request and response
-      env['amf.request'] = Request.new(env)
-      env['amf.response'] = Response.new(env['amf.request'])
+      env['rack-amf.request'] = Request.new(env)
+      env['rack-amf.response'] = Response.new(env['rack-amf.request'])
 
       # Handle request
-      if @mode == :pass_through
+      if @options[:mode] == :pass_through
         @app.call env
-      elsif @mode == :internal
+      elsif @options[:mode] == :internal
         # Have the service manager handle it
         Services.handle(env)
       end
 
-      response = env['amf.response'].to_s
+      # Calculate length and return response
+      response = env['rack-amf.response'].to_s
       [200, {"Content-Type" => APPLICATION_AMF, 'Content-Length' => response.length.to_s}, [response]]
     end
   end
