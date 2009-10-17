@@ -2,3 +2,4 @@ pkg/*
 .loadpath
 .project
 /rdoc/
+*.gemspec
