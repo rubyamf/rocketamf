@@ -288,7 +288,7 @@ module AMF
       end
     end
 
-    class SerializerCache #:nodoc:all:
+    class SerializerCache #:nodoc:
       def self.new type
         if type == :string
           StringCache.new
@@ -297,7 +297,7 @@ module AMF
         end
       end
 
-      class StringCache < Hash
+      class StringCache < Hash #:nodoc:
         def initialize
           @cache_index = 0
         end
@@ -308,7 +308,7 @@ module AMF
         end
       end
 
-      class ObjectCache < Hash
+      class ObjectCache < Hash #:nodoc:
         def initialize
           @cache_index = 0
         end

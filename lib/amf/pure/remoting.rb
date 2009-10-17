@@ -95,7 +95,7 @@ module AMF
       include AMF::Pure::WriteIOHelpers
     end
 
-    # AMF::Request or AMF::Response header
+    # AMF::Pure::Request or AMF::Pure::Response header
     class Header
       attr_accessor :name, :must_understand, :data
 
@@ -106,7 +106,7 @@ module AMF
       end
     end
 
-    # AMF::Request or AMF::Response message
+    # AMF::Pure::Request or AMF::Pure::Response message
     class Message
       attr_accessor :target_uri, :response_uri, :data
 

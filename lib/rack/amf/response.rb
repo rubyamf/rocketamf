@@ -1,4 +1,5 @@
 module Rack::AMF
+  # Rack specific wrapper around AMF::Response
   class Response
     attr_reader :raw_response
 

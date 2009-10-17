@@ -1,6 +1,6 @@
 == DESCRIPTION:
 
-What will eventually become a full featured AMF gateway implemented as a Rack middleware and AMF0/3 serializers and deserializers. Currently includes a fully compliant AMF0/AMF3 deserializer, AMF3 serializer, and a Rack middleware that supports both standard AMF calls and <tt>RemoteObject</tt> calls.
+A full featured AMF gateway implemented as a Rack middleware. Includes fully compliant AMF0/AMF3 serializers and deserializers and a Rack middleware that includes a service handler and the ability to easily handle requests yourself if you don't want to use the service handler.
 
 == INSTALL:
 
@@ -19,7 +19,7 @@ config.ru:
     end
   end
   
-  Rack::AMF::Services.register('TestService', TestService.new)
+  Rack::AMF::Environment.register_service 'TestService', TestService.new
   
   run lambda {|env| [200, { 'Content-Type' => 'text/plain', 'Content-Length' => '16' }, ["Rack AMF gateway"] ] }
 

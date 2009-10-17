@@ -1,4 +1,5 @@
 module Rack::AMF
+  # Rack specific wrapper around AMF::Request
   class Request
     attr_reader :raw_request
 
