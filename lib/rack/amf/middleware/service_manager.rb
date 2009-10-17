@@ -1,12 +1,14 @@
-module Rack::AMF
-  class ServiceManager
-    def initialize
-      @services = {}
-    end
+require 'rack/amf/middleware'
 
-    def register path, service
-      @services ||= {}
-      @services[path] = service
+module Rack::AMF::Middleware #:nodoc:
+  # Internal AMF handler, it uses the ServiceManager to handle request service
+  # mapping.
+  class ServiceManager
+    include Rack::AMF::Middleware
+
+    def initialize app, options={}
+      @app = app
+      Rack::AMF::Environment.populate options
     end
 
     def handle env
@@ -21,9 +23,10 @@ module Rack::AMF
       method_name = path.pop
       path = path.join('.')
 
-      if @services[path]
-        if @services[path].respond_to?(method_name)
-          @services[path].send(method_name, *args)
+      s = Rack::AMF::Environment.services
+      if s[path]
+        if s[path].respond_to?(method_name)
+          s[path].send(method_name, *args)
         else
           raise "Service #{path} does not respond to #{method_name}"
         end

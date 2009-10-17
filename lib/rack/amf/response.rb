@@ -2,6 +2,8 @@ module Rack::AMF
   class Response
     attr_reader :raw_response
 
+    V = ::AMF::Values
+
     def initialize request
       @request = request
       @raw_response = ::AMF::Response.new
@@ -10,49 +12,65 @@ module Rack::AMF
 
     # Builds response, iterating over each method call and using the return value
     # as the method call's return value
+    #--
+    # Iterate over all the sent messages. If they're somthing we can handle, like
+    # a command message, then simply add the response message ourselves. If it's
+    # a method call, then call the block with the method and args, catching errors
+    # for handling. Then create the appropriate response message using the return
+    # value of the block as the return value for the method call.
     def each_method_call &block
       raise 'Response already constructed' if @constructed
 
       @request.messages.each do |m|
-        target_uri = m.response_uri
-
-        rd = m.data
-        if rd.is_a?(::AMF::Values::CommandMessage)
-          if rd.operation == ::AMF::Values::CommandMessage::CLIENT_PING_OPERATION
-            data = ::AMF::Values::AcknowledgeMessage.new(rd)
+        # What's the request body?
+        case m.data
+        when V::CommandMessage
+          # Pings should be responded to with an AcknowledgeMessage built using the ping
+          # Everything else is unsupported
+          command_msg = m.data
+          if command_msg.operation == V::CommandMessage::CLIENT_PING_OPERATION
+            response_value = V::AcknowledgeMessage.new(command_msg)
           else
-            data == ::AMF::Values::ErrorMessage.new(Exception.new("CommandMessage #{rd.operation} not implemented"), rd)
+            response_value = V::ErrorMessage.new(Exception.new("CommandMessage #{command_msg.operation} not implemented"), command_msg)
           end
-        elsif rd.is_a?(::AMF::Values::RemotingMessage)
-          am = ::AMF::Values::AcknowledgeMessage.new(rd)
-          body = dispatch_call(rd.source+'.'+rd.operation, rd.body, rd, block)
-          if body.is_a?(::AMF::Values::ErrorMessage)
-            data = body
+        when V::RemotingMessage
+          # Using RemoteObject style message calls
+          remoting_msg = m.data
+          acknowledge_msg = V::AcknowledgeMessage.new(remoting_msg)
+          body = dispatch_call :method => remoting_msg.source+'.'+remoting_msg.operation, :args => remoting_msg.body, :source => remoting_msg, :block => block
+
+          # Response should be the bare ErrorMessage if there was an error
+          if body.is_a?(V::ErrorMessage)
+            response_value = body
           else
-            am.body = body
-            data = am
+            acknowledge_msg.body = body
+            response_value = acknowledge_msg
           end
         else
-          data = dispatch_call(m.target_uri, rd, m, block)
+          # Standard response message
+          response_value = dispatch_call :method => m.target_uri, :args => m.data, :source => m, :block => block
         end
 
-        target_uri += data.is_a?(::AMF::Values::ErrorMessage) ? '/onStatus' : '/onResult'
-        @raw_response.messages << ::AMF::Message.new(target_uri, '', data)
+        target_uri = m.response_uri
+        target_uri += response_value.is_a?(V::ErrorMessage) ? '/onStatus' : '/onResult'
+        @raw_response.messages << ::AMF::Message.new(target_uri, '', response_value)
       end
 
       @constructed = true
     end
 
+    # Return the serialized response as a string
     def to_s
       raw_response.serialize
     end
 
     private
-    def dispatch_call method, args, source_message, handler
+    def dispatch_call p
       begin
-        handler.call(method, args)
+        p[:block].call(p[:method], p[:args])
       rescue Exception => e
-        ::AMF::Values::ErrorMessage.new(source_message, e)
+        # Create ErrorMessage object using the source message as the base
+        V::ErrorMessage.new(p[:source], e)
       end
     end
   end
