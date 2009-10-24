@@ -23,7 +23,7 @@ end
 
 spec = Gem::Specification.new do |s|
   s.name    = 'rack-amf'
-  s.version = '0.0.2'
+  s.version = '0.0.3'
   s.summary = 'AMF serializer/deserializer and AMF gateway packaged as a rack middleware'
 
   s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb']
