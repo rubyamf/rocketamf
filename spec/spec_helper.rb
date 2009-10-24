@@ -19,6 +19,7 @@ def object_fixture(binary_path)
 end
 
 def create_rack_request(binary_path)
+  require 'rack/amf/request'
   env = {'rack.input' => StringIO.new(request_fixture(binary_path))}
   Rack::AMF::Request.new(env)
 end

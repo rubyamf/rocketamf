@@ -1,5 +1,6 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 require 'rack/amf'
+require 'rack/amf/response'
 
 describe Rack::AMF::Response do
   it "should serialize response when converted to string" do
