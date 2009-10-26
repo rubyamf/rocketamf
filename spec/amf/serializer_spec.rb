@@ -196,8 +196,6 @@ describe "when serializing" do
         output.should == expected
       end
 
-      it "should serialize an open struct as a dynamic anonymous object"
-
       it "should serialize an empty array" do
         expected = object_fixture("amf3-emptyArray.bin")
         input = []

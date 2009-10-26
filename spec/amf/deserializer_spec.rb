@@ -205,8 +205,6 @@ describe "when deserializing" do
         output.should == {:foo => "bar", :answer => 42}
       end
 
-      it "should deserialize an open struct as a dynamic anonymous object"
-
       it "should deserialize an empty array" do
         input = object_fixture("amf3-emptyArray.bin")
         output = AMF.deserialize(input, 3)
