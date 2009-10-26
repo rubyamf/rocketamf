@@ -26,7 +26,7 @@ spec = Gem::Specification.new do |s|
   s.version = '0.0.3'
   s.summary = 'AMF serializer/deserializer and AMF gateway packaged as a rack middleware'
 
-  s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb']
+  s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb', 'spec/**/*.bin', 'spec/spec.opts']
   s.require_path = 'lib'
   s.test_files   = Dir[*['spec/**/*_spec.rb']]
 
