@@ -18,10 +18,8 @@ def object_fixture(binary_path)
   File.open(File.dirname(__FILE__) + '/fixtures/objects/' + binary_path).read
 end
 
-def create_rack_request(binary_path)
-  require 'rack/amf/request'
-  env = {'rack.input' => StringIO.new(request_fixture(binary_path))}
-  Rack::AMF::Request.new(env)
+def create_request(binary_path)
+  AMF::Request.new.populate_from_stream(StringIO.new(request_fixture(binary_path)))
 end
 
 # Add reset support to ClassMapping

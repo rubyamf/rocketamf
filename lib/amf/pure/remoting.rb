@@ -2,18 +2,16 @@ require 'amf/pure/io_helpers'
 
 module AMF
   module Pure
-    # AMF request object wrapper, it is responsible for deserializing AMF requests
-    class Request
-      attr_reader :amf_version, :headers, :messages
+    # Request deserialization module - provides a method that can be included into
+    # AMF::Request for deserializing the given stream.
+    module Request
+      def populate_from_stream stream
+        stream = StringIO.new(stream) unless StringIO === stream
 
-      def initialize
+        # Initialize
         @amf_version = 0
         @headers = []
         @messages = []
-      end
-
-      def populate_from_stream stream
-        stream = StringIO.new(stream) unless StringIO === stream
 
         # Read AMF version
         @amf_version = read_word16_network stream
@@ -25,7 +23,7 @@ module AMF
           must_understand = read_int8(stream) != 0
           length = read_word32_network stream
           data = AMF.deserialize stream
-          @headers << Header.new(name, must_understand, data)
+          @headers << AMF::Header.new(name, must_understand, data)
         end
 
         # Read in messages
@@ -38,7 +36,7 @@ module AMF
           if data.is_a?(Array) && data.length == 1 && data[0].is_a?(::AMF::Values::AbstractMessage)
             data = data[0]
           end
-          @messages << Message.new(target_uri, response_uri, data)
+          @messages << AMF::Message.new(target_uri, response_uri, data)
         end
 
         self
@@ -48,16 +46,9 @@ module AMF
       include AMF::Pure::ReadIOHelpers
     end
 
-    # AMF response object wrapper, it is responsible for serializing the AMF response
-    class Response
-      attr_accessor :amf_version, :headers, :messages
-
-      def initialize
-        @amf_version = 0
-        @headers = []
-        @messages = []
-      end
-
+    # Response serialization module - provides a method that can be included into
+    # AMF::Response for deserializing the given stream.
+    module Response
       def serialize
         stream = ""
 
@@ -93,28 +84,6 @@ module AMF
 
       private
       include AMF::Pure::WriteIOHelpers
-    end
-
-    # AMF::Pure::Request or AMF::Pure::Response header
-    class Header
-      attr_accessor :name, :must_understand, :data
-
-      def initialize name, must_understand, data
-        @name = name
-        @must_understand = must_understand
-        @data = data
-      end
-    end
-
-    # AMF::Pure::Request or AMF::Pure::Response message
-    class Message
-      attr_accessor :target_uri, :response_uri, :data
-
-      def initialize target_uri, response_uri, data
-        @target_uri = target_uri
-        @response_uri = response_uri
-        @data = data
-      end
     end
   end
 end

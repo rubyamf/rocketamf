@@ -1,3 +1,8 @@
+require 'amf/version'
+require 'amf/class_mapping'
+require 'amf/constants'
+require 'amf/remoting'
+
 module AMF
   class << self
     # Deserialize the AMF string _source_ into a Ruby data structure and return it.
@@ -22,6 +27,8 @@ module AMF
       end
     end
   end
+
+  ClassMapper = AMF::ClassMapping.new
 
   # The base exception for AMF errors.
   class AMFError < StandardError; end
