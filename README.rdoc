@@ -4,7 +4,7 @@ A fast AMF serializer/deserializer and request/response wrappers to simplify rem
 
 == INSTALL:
 
-  gem install rocketamf --source="http://gemcutter.org"
+  gem install RocketAMF --source="http://gemcutter.org"
 
 == EXAMPLE:
 
