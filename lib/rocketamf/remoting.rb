@@ -1,6 +1,5 @@
 module RocketAMF
-  # Container for the AMF request. Includes deserialization from a stream from
-  # RocketAMF::Pure::Request.
+  # Container for the AMF request.
   class Request
     attr_reader :amf_version, :headers, :messages
 
@@ -8,6 +7,18 @@ module RocketAMF
       @amf_version = 0
       @headers = []
       @messages = []
+    end
+
+    # Populates the request from the given stream or string. Returns self for easy
+    # chaining
+    #
+    # Example:
+    #
+    #    req = RocketAMF::Request.new.populate_from_stream(env['rack.input'].read)
+    #--
+    # Implemented in pure/remoting.rb RocketAMF::Pure::Request
+    def populate_from_stream stream
+      raise AMFError, 'Must load "rocketamf/pure"'
     end
   end
 
@@ -20,6 +31,13 @@ module RocketAMF
       @amf_version = 0
       @headers = []
       @messages = []
+    end
+
+    # Serializes the response to a string and returns it.
+    #--
+    # Implemented in pure/remoting.rb RocketAMF::Pure::Response
+    def serialize
+      raise AMFError, 'Must load "rocketamf/pure"'
     end
 
     # Builds response from the request, iterating over each method call and using

@@ -12,19 +12,19 @@ Spec::Rake::SpecTask.new do |t|
   t.spec_opts = ['--options', 'spec/spec.opts']
 end
 
-desc 'Generate documentation for the rubyamf plugin.'
+desc 'Generate documentation for the RocketAMF plugin.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'Rack AMF'
+  rdoc.title    = 'RocketAMF'
   rdoc.options << '--line-numbers' << '--main' << 'README.rdoc'
   rdoc.rdoc_files.include('README.rdoc')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
 
 spec = Gem::Specification.new do |s|
-  s.name    = 'rack-amf'
-  s.version = '0.0.4'
-  s.summary = 'AMF serializer/deserializer and AMF gateway packaged as a rack middleware'
+  s.name    = 'RocketAMF'
+  s.version = '0.0.5'
+  s.summary = 'Fast AMF serializer/deserializer and request/response wrappers to simplify remoting implementation'
 
   s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb', 'spec/**/*.bin', 'spec/spec.opts']
   s.require_path = 'lib'
