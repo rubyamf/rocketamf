@@ -1,8 +1,8 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
-describe AMF::ClassMapping::MappingSet do
+describe RocketAMF::ClassMapping::MappingSet do
   before :each do
-    @config = AMF::ClassMapping::MappingSet.new
+    @config = RocketAMF::ClassMapping::MappingSet.new
   end
 
   it "should retrieve AS mapping for ruby class" do

@@ -1,4 +1,4 @@
-module AMF
+module RocketAMF
   # AMF version
   VERSION         = '0.0.4'
   VERSION_ARRAY   = VERSION.split(/\./).map { |x| x.to_i } # :nodoc:

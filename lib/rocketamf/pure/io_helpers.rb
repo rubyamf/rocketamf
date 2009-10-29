@@ -1,4 +1,4 @@
-module AMF
+module RocketAMF
   module Pure
     module ReadIOHelpers #:nodoc:
       def read_int8 source

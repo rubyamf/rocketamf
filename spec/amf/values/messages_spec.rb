@@ -1,8 +1,8 @@
 require File.dirname(__FILE__) + '/../../spec_helper.rb'
 
-describe AMF::Values::AbstractMessage do
+describe RocketAMF::Values::AbstractMessage do
   before :each do
-    @message = AMF::Values::AbstractMessage.new
+    @message = RocketAMF::Values::AbstractMessage.new
   end
 
   it "should generate conforming uuids" do
@@ -10,16 +10,16 @@ describe AMF::Values::AbstractMessage do
   end
 end
 
-describe AMF::Values::ErrorMessage do
+describe RocketAMF::Values::ErrorMessage do
   before :each do
     @e = Exception.new('Error message')
     @e.set_backtrace(['Backtrace 1', 'Backtrace 2'])
-    @message = AMF::Values::ErrorMessage.new(nil, @e)
+    @message = RocketAMF::Values::ErrorMessage.new(nil, @e)
   end
 
   it "should serialize as a hash in AMF0" do
-    response = AMF::Response.new
-    response.messages << AMF::Message.new('1/onStatus', '', @message)
+    response = RocketAMF::Response.new
+    response.messages << RocketAMF::Message.new('1/onStatus', '', @message)
     response.serialize.should == request_fixture('amf0-error-response.bin')
   end
 

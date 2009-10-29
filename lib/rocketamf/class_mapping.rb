@@ -1,8 +1,8 @@
-require 'amf/values/typed_hash'
-require 'amf/values/array_collection'
-require 'amf/values/messages'
+require 'rocketamf/values/typed_hash'
+require 'rocketamf/values/array_collection'
+require 'rocketamf/values/messages'
 
-module AMF
+module RocketAMF
   # == Class Mapping
   #
   # Handles class name mapping between actionscript and ruby and assists in
@@ -12,7 +12,7 @@ module AMF
   #
   # Example:
   #
-  #   AMF::ClassMapper.define do |m|
+  #   RocketAMF::ClassMapper.define do |m|
   #     m.map :as => 'AsClass', :ruby => 'RubyClass'
   #     m.map :as => 'vo.User', :ruby => 'User'
   #   end
@@ -41,7 +41,7 @@ module AMF
   #       obj.merge!(dynamic_props) if dynamic_props
   #     end
   #   end
-  #   AMF::ClassMapper.object_populators << CustomPopulator.new
+  #   RocketAMF::ClassMapper.object_populators << CustomPopulator.new
   #
   # Serializers are also processed in insert order and must respond to the
   # <tt>can_handle?</tt> and <tt>serialize</tt> methods.
@@ -57,7 +57,7 @@ module AMF
   #       {}
   #     end
   #   end
-  #   AMF::ClassMapper.object_serializers << CustomSerializer.new
+  #   RocketAMF::ClassMapper.object_serializers << CustomSerializer.new
   class ClassMapping
     # Container for all mapped classes
     class MappingSet
@@ -66,13 +66,13 @@ module AMF
         @ruby_mappings = {}
 
         # Map defaults
-        map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'AMF::Values::AbstractMessage'
-        map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'AMF::Values::RemotingMessage'
-        map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'AMF::Values::AsyncMessage'
-        map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'AMF::Values::CommandMessage'
-        map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'AMF::Values::AcknowledgeMessage'
-        map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'AMF::Values::ErrorMessage'
-        map :as => 'flex.messaging.io.ArrayCollection', :ruby => 'AMF::Values::ArrayCollection'
+        map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'RocketAMF::Values::AbstractMessage'
+        map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'RocketAMF::Values::RemotingMessage'
+        map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'RocketAMF::Values::AsyncMessage'
+        map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'RocketAMF::Values::CommandMessage'
+        map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'RocketAMF::Values::AcknowledgeMessage'
+        map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'RocketAMF::Values::ErrorMessage'
+        map :as => 'flex.messaging.io.ArrayCollection', :ruby => 'RocketAMF::Values::ArrayCollection'
       end
 
       # Map a given AS class to a ruby class.
@@ -117,7 +117,7 @@ module AMF
     #
     # Example:
     #
-    #   AMF::ClassMapper.define do |m|
+    #   RocketAMF::ClassMapper.define do |m|
     #     m.map :as => 'AsClass', :ruby => 'RubyClass'
     #   end
     def define #:yields: mapping_set

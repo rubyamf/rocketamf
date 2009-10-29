@@ -1,5 +1,6 @@
+require 'rubygems'
 require 'rack'
-require 'amf'
+require 'rocketamf'
 require 'rack/amf/environment'
 
 module Rack::AMF

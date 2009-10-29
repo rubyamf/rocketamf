@@ -1,4 +1,4 @@
-module AMF
+module RocketAMF
   # AMF0 Type Markers
   AMF0_NUMBER_MARKER       = 0x00 #"\000"
   AMF0_BOOLEAN_MARKER      = 0x01 #"\001"

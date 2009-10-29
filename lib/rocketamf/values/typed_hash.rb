@@ -1,4 +1,4 @@
-module AMF
+module RocketAMF
   module Values #:nodoc:
     # Hash-like object that can store a type string. Used to preserve type information
     # for unmapped objects after deserialization.

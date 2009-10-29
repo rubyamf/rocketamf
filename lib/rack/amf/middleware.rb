@@ -12,8 +12,8 @@ module Rack::AMF
 
       # Wrap request and response
       env['rack.input'].rewind
-      env['rack-amf.request'] = ::AMF::Request.populate_from_stream(env['rack.input'].read)
-      env['rack-amf.response'] = ::AMF::Response.new
+      env['rack-amf.request'] = RocketAMF::Request.populate_from_stream(env['rack.input'].read)
+      env['rack-amf.response'] = RocketAMF::Response.new
 
       # Call handle on "inheriting" class
       handle env

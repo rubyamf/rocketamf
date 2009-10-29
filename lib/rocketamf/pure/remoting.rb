@@ -1,9 +1,9 @@
-require 'amf/pure/io_helpers'
+require 'rocketamf/pure/io_helpers'
 
-module AMF
+module RocketAMF
   module Pure
     # Request deserialization module - provides a method that can be included into
-    # AMF::Request for deserializing the given stream.
+    # RocketAMF::Request for deserializing the given stream.
     module Request
       def populate_from_stream stream
         stream = StringIO.new(stream) unless StringIO === stream
@@ -22,8 +22,8 @@ module AMF
           name = stream.read(read_word16_network(stream))
           must_understand = read_int8(stream) != 0
           length = read_word32_network stream
-          data = AMF.deserialize stream
-          @headers << AMF::Header.new(name, must_understand, data)
+          data = RocketAMF.deserialize stream
+          @headers << RocketAMF::Header.new(name, must_understand, data)
         end
 
         # Read in messages
@@ -32,22 +32,22 @@ module AMF
           target_uri = stream.read(read_word16_network(stream))
           response_uri = stream.read(read_word16_network(stream))
           length = read_word32_network stream
-          data = AMF.deserialize stream
-          if data.is_a?(Array) && data.length == 1 && data[0].is_a?(::AMF::Values::AbstractMessage)
+          data = RocketAMF.deserialize stream
+          if data.is_a?(Array) && data.length == 1 && data[0].is_a?(::RocketAMF::Values::AbstractMessage)
             data = data[0]
           end
-          @messages << AMF::Message.new(target_uri, response_uri, data)
+          @messages << RocketAMF::Message.new(target_uri, response_uri, data)
         end
 
         self
       end
 
       private
-      include AMF::Pure::ReadIOHelpers
+      include RocketAMF::Pure::ReadIOHelpers
     end
 
     # Response serialization module - provides a method that can be included into
-    # AMF::Response for deserializing the given stream.
+    # RocketAMF::Response for deserializing the given stream.
     module Response
       def serialize
         stream = ""
@@ -62,7 +62,7 @@ module AMF
           stream << h.name
           stream << pack_int8(h.must_understand ? 1 : 0)
           stream << pack_word32_network(-1)
-          stream << AMF.serialize(h.data, 0)
+          stream << RocketAMF.serialize(h.data, 0)
         end
 
         # Write messages
@@ -76,14 +76,14 @@ module AMF
 
           stream << pack_word32_network(-1)
           stream << AMF0_AMF3_MARKER if @amf_version == 3
-          stream << AMF.serialize(m.data, @amf_version)
+          stream << RocketAMF.serialize(m.data, @amf_version)
         end
 
         stream
       end
 
       private
-      include AMF::Pure::WriteIOHelpers
+      include RocketAMF::Pure::WriteIOHelpers
     end
   end
 end

@@ -1,6 +1,6 @@
-module AMF
+module RocketAMF
   # Container for the AMF request. Includes deserialization from a stream from
-  # AMF::Pure::Request.
+  # RocketAMF::Pure::Request.
   class Request
     attr_reader :amf_version, :headers, :messages
 
@@ -69,7 +69,7 @@ module AMF
 
         target_uri = m.response_uri
         target_uri += response_value.is_a?(Values::ErrorMessage) ? '/onStatus' : '/onResult'
-        @messages << ::AMF::Message.new(target_uri, '', response_value)
+        @messages << ::RocketAMF::Message.new(target_uri, '', response_value)
       end
 
       @constructed = true
@@ -91,7 +91,7 @@ module AMF
     end
   end
 
-  # AMF::Request or AMF::Response header
+  # RocketAMF::Request or RocketAMF::Response header
   class Header
     attr_accessor :name, :must_understand, :data
 
@@ -102,7 +102,7 @@ module AMF
     end
   end
 
-  # AMF::Request or AMF::Response message
+  # RocketAMF::Request or RocketAMF::Response message
   class Message
     attr_accessor :target_uri, :response_uri, :data
 

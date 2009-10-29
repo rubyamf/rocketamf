@@ -1,4 +1,4 @@
-module AMF
+module RocketAMF
   module Values #:nodoc:
     # Base class for all special AS3 response messages. Maps to
     # <tt>flex.messaging.messages.AbstractMessage</tt>

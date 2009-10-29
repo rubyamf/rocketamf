@@ -1,6 +1,6 @@
-require 'amf/pure/io_helpers'
+require 'rocketamf/pure/io_helpers'
 
-module AMF
+module RocketAMF
   module Pure
     # Pure ruby deserializer
     #--
@@ -48,7 +48,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::ReadIOHelpers
+      include RocketAMF::Pure::ReadIOHelpers
 
       def read_number source
         res = read_double source
@@ -194,7 +194,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::ReadIOHelpers
+      include RocketAMF::Pure::ReadIOHelpers
 
       def read_integer source
         n = 0

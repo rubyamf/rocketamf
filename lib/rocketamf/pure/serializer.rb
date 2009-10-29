@@ -1,6 +1,6 @@
-require 'amf/pure/io_helpers'
+require 'rocketamf/pure/io_helpers'
 
-module AMF
+module RocketAMF
   module Pure
     # AMF0 implementation of serializer
     class Serializer
@@ -111,7 +111,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::WriteIOHelpers
+      include RocketAMF::Pure::WriteIOHelpers
       def write_prop_list obj, stream
         # Write prop list
         props = ClassMapper.props_for_serialization obj
@@ -268,7 +268,7 @@ module AMF
       end
 
       private
-      include AMF::Pure::WriteIOHelpers
+      include RocketAMF::Pure::WriteIOHelpers
 
       def write_utf8_vr str, stream
         if str == ''

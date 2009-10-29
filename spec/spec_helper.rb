@@ -8,7 +8,7 @@ end
 require 'spec/autorun'
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
-require 'amf'
+require 'rocketamf'
 
 def request_fixture(binary_path)
   File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path).read
@@ -19,11 +19,11 @@ def object_fixture(binary_path)
 end
 
 def create_request(binary_path)
-  AMF::Request.new.populate_from_stream(StringIO.new(request_fixture(binary_path)))
+  RocketAMF::Request.new.populate_from_stream(StringIO.new(request_fixture(binary_path)))
 end
 
 # Add reset support to ClassMapping
-module AMF
+module RocketAMF
   class ClassMapping
     def reset
       @mappings = nil

@@ -1,8 +1,8 @@
-module AMF
+module RocketAMF
   module Values #:nodoc:
-    class ArrayCollection
+    class ArrayCollection < Array
       def externalized_data=(data)
-        @data = data
+        push(*data)
       end
     end
   end

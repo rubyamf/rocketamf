@@ -1,6 +1,6 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
-describe AMF::ClassMapping do
+describe RocketAMF::ClassMapping do
   before(:all) do
     class ClassMappingTest
       attr_accessor :prop_a
@@ -10,7 +10,7 @@ describe AMF::ClassMapping do
   end
 
   before :each do
-    @mapper = AMF::ClassMapping.new
+    @mapper = RocketAMF::ClassMapping.new
     @mapper.define do |m|
       m.map :as => 'ASClass', :ruby => 'ClassMappingTest'
     end
@@ -41,7 +41,7 @@ describe AMF::ClassMapping do
 
     it "should return a hash with original type if not mapped" do
       obj = @mapper.get_ruby_obj('UnmappedClass')
-      obj.should be_a(AMF::Values::TypedHash)
+      obj.should be_a(RocketAMF::Values::TypedHash)
       obj.type.should == 'UnmappedClass'
     end
   end
@@ -53,7 +53,7 @@ describe AMF::ClassMapping do
     end
 
     it "should populate a typed hash" do
-      obj = @mapper.populate_ruby_obj AMF::Values::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
+      obj = @mapper.populate_ruby_obj RocketAMF::Values::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
       obj[:prop_a].should == 'Data'
     end
 
