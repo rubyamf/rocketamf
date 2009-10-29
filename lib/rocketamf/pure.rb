@@ -19,10 +19,12 @@ module RocketAMF
 
   # Modify request and response so they can serialize/deserialize
   class Request
+    remove_method :populate_from_stream
     include RocketAMF::Pure::Request
   end
 
   class Response
+    remove_method :serialize
     include RocketAMF::Pure::Response
   end
 end
