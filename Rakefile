@@ -36,7 +36,7 @@ spec = Gem::Specification.new do |s|
 
   s.authors  = ['Tony Hillerson', 'Stephen Augenstein']
   s.email    = 'perl.programmer@gmail.com'
-  s.homepage = 'http://github.com/warhammerkid/rack-amf'
+  s.homepage = 'http://github.com/warhammerkid/rocket-amf'
 
   s.platform = Gem::Platform::RUBY
 end
