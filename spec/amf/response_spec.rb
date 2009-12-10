@@ -40,6 +40,19 @@ describe RocketAMF::Response do
     res.messages[0].data.should be_a(RocketAMF::Values::AcknowledgeMessage)
   end
 
+  it "should fail on unsupported command" do
+    res = RocketAMF::Response.new
+    req = create_request('unsupportedCommandMessage.bin')
+    res.each_method_call req do |method, args|
+      nil
+    end
+
+    res.messages.length.should == 1
+    res.messages[0].data.should be_a(RocketAMF::Values::ErrorMessage)
+    res.messages[0].data.faultString.should == "CommandMessage 10000 not implemented"
+    puts res.messages[0].data.inspect
+  end
+
   it "should handle RemotingMessages properly" do
     res = RocketAMF::Response.new
     req = create_request('remotingMessage.bin')

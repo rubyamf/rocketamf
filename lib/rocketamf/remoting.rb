@@ -65,7 +65,9 @@ module RocketAMF
           if command_msg.operation == Values::CommandMessage::CLIENT_PING_OPERATION
             response_value = Values::AcknowledgeMessage.new(command_msg)
           else
-            response_value = Values::ErrorMessage.new(Exception.new("CommandMessage #{command_msg.operation} not implemented"), command_msg)
+            e = Exception.new("CommandMessage #{command_msg.operation} not implemented")
+            e.set_backtrace ["RocketAMF::Response each_method_call"]
+            response_value = Values::ErrorMessage.new(command_msg, e)
           end
         when Values::RemotingMessage
           # Using RemoteObject style message calls
