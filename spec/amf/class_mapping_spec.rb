@@ -16,19 +16,19 @@ describe RocketAMF::ClassMapping do
     end
   end
 
-  it "should return AS class name for ruby objects" do
-    @mapper.get_as_class_name(ClassMappingTest.new).should == 'ASClass'
-    @mapper.get_as_class_name('ClassMappingTest').should == 'ASClass'
-  end
-
-  it "should allow config modification" do
-    @mapper.define do |m|
-      m.map :as => 'SecondClass', :ruby => 'ClassMappingTest'
+  describe "class name mapping" do
+    it "should allow resetting of mappings back to defaults" do
+      @mapper.reset
+      @mapper.get_as_class_name('ClassMappingTest').should be_nil
+      @mapper.get_as_class_name('RocketAMF::Values::AcknowledgeMessage').should_not be_nil
     end
-    @mapper.get_as_class_name(ClassMappingTest.new).should == 'SecondClass'
-  end
 
-  describe "ruby object generator" do
+    it "should return AS class name for ruby objects" do
+      @mapper.get_as_class_name(ClassMappingTest.new).should == 'ASClass'
+      @mapper.get_as_class_name('ClassMappingTest').should == 'ASClass'
+      @mapper.get_as_class_name('BadClass').should be_nil
+    end
+
     it "should instantiate a ruby class" do
       @mapper.get_ruby_obj('ASClass').should be_a(ClassMappingTest)
     end
@@ -43,6 +43,38 @@ describe RocketAMF::ClassMapping do
       obj = @mapper.get_ruby_obj('UnmappedClass')
       obj.should be_a(RocketAMF::Values::TypedHash)
       obj.type.should == 'UnmappedClass'
+    end
+
+    it "should map special classes from AS by default" do
+      as_classes = [
+        'flex.messaging.messages.AcknowledgeMessage',
+        'flex.messaging.messages.CommandMessage',
+        'flex.messaging.messages.RemotingMessage',
+        'flex.messaging.io.ArrayCollection'
+      ]
+
+      as_classes.each do |as_class|
+        @mapper.get_ruby_obj(as_class).should_not be_a(RocketAMF::Values::TypedHash)
+      end
+    end
+
+    it "should map special classes from ruby by default" do
+      ruby_classes = [
+        'RocketAMF::Values::AcknowledgeMessage',
+        'RocketAMF::Values::ErrorMessage',
+        'RocketAMF::Values::ArrayCollection'
+      ]
+
+      ruby_classes.each do |obj|
+        @mapper.get_as_class_name(obj).should_not be_nil
+      end
+    end
+
+    it "should allow config modification" do
+      @mapper.define do |m|
+        m.map :as => 'SecondClass', :ruby => 'ClassMappingTest'
+      end
+      @mapper.get_as_class_name(ClassMappingTest.new).should == 'SecondClass'
     end
   end
 

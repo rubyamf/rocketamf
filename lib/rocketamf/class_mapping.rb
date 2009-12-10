@@ -124,6 +124,11 @@ module RocketAMF
       yield mappings
     end
 
+    # Reset all class mappings except the defaults
+    def reset
+      @mappings = nil
+    end
+
     # Returns the AS class name for the given ruby object. Will also take a string
     # containing the ruby class name
     def get_as_class_name obj

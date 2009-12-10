@@ -21,12 +21,3 @@ end
 def create_request(binary_path)
   RocketAMF::Request.new.populate_from_stream(StringIO.new(request_fixture(binary_path)))
 end
-
-# Add reset support to ClassMapping
-module RocketAMF
-  class ClassMapping
-    def reset
-      @mappings = nil
-    end
-  end
-end
