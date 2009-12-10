@@ -50,7 +50,6 @@ describe RocketAMF::Response do
     res.messages.length.should == 1
     res.messages[0].data.should be_a(RocketAMF::Values::ErrorMessage)
     res.messages[0].data.faultString.should == "CommandMessage 10000 not implemented"
-    puts res.messages[0].data.inspect
   end
 
   it "should handle RemotingMessages properly" do
