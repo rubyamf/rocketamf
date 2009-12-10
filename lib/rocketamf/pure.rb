@@ -3,13 +3,14 @@ require 'rocketamf/pure/serializer'
 require 'rocketamf/pure/remoting'
 
 module RocketAMF
-  # This module holds all the modules/classes that implement AMF's
-  # functionality in pure ruby.
+  # This module holds all the modules/classes that implement AMF's functionality
+  # in pure ruby
   module Pure
     $DEBUG and warn "Using pure library for RocketAMF."
   end
 
-  # Import Deserializer
+  #:stopdoc:
+  # Import deserializer
   Deserializer = RocketAMF::Pure::Deserializer
   AMF3Deserializer = RocketAMF::Pure::AMF3Deserializer
 
@@ -27,4 +28,5 @@ module RocketAMF
     remove_method :serialize
     include RocketAMF::Pure::Response
   end
+  #:startdoc:
 end

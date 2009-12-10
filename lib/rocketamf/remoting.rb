@@ -10,7 +10,7 @@ module RocketAMF
     end
 
     # Populates the request from the given stream or string. Returns self for easy
-    # chaining
+    # chaining.
     #
     # Example:
     #
@@ -33,7 +33,7 @@ module RocketAMF
       @messages = []
     end
 
-    # Serializes the response to a string and returns it.
+    # Serializes the response to a string and returns it
     #--
     # Implemented in pure/remoting.rb RocketAMF::Pure::Response
     def serialize

@@ -14,7 +14,7 @@ module RocketAMF
   #
   #   RocketAMF::ClassMapper.define do |m|
   #     m.map :as => 'AsClass', :ruby => 'RubyClass'
-  #     m.map :as => 'vo.User', :ruby => 'User'
+  #     m.map :as => 'vo.User', :ruby => 'Model::User'
   #   end
   #
   # == Object Population/Serialization
@@ -58,6 +58,23 @@ module RocketAMF
   #     end
   #   end
   #   RocketAMF::ClassMapper.object_serializers << CustomSerializer.new
+  #
+  # == Complete Replacement
+  #
+  # In some cases, it may be beneficial to replace the default provider of class
+  # mapping completely. In this case, simply assign an instance of your own class
+  # mapper to <tt>RocketAMF::ClassMapper</tt> after loading RocketAMF. Through
+  # the magic of <tt>const_missing</tt>, <tt>ClassMapper</tt> is only defined after
+  # the first access by default, so you get no annoying warning messages.
+  #
+  # Example:
+  #
+  #   require 'rubygems'
+  #   require 'rocketamf'
+  #   
+  #   RocketAMF::ClassMapper = MyCustomClassMapper.new
+  #   # No warning about already initialized constant ClassMapper
+  #   RocketAMF::ClassMapper.class # MyCustomClassMapper
   class ClassMapping
     # Container for all mapped classes
     class MappingSet
@@ -130,7 +147,7 @@ module RocketAMF
     end
 
     # Returns the AS class name for the given ruby object. Will also take a string
-    # containing the ruby class name
+    # containing the ruby class name.
     def get_as_class_name obj
       # Get class name
       if obj.is_a?(String)

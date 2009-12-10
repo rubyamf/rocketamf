@@ -139,14 +139,14 @@ module RocketAMF
       def read_typed_object source
         # Create object to add to ref cache
         class_name = read_string source
-        obj = ClassMapper.get_ruby_obj class_name
+        obj = RocketAMF::ClassMapper.get_ruby_obj class_name
         @ref_cache << obj
 
         # Read object props
         props = read_object source, false
 
         # Populate object
-        ClassMapper.populate_ruby_obj obj, props, {}
+        RocketAMF::ClassMapper.populate_ruby_obj obj, props, {}
         return obj
       end
     end
@@ -316,7 +316,7 @@ module RocketAMF
             @trait_cache << class_definition
           end
 
-          obj = ClassMapper.get_ruby_obj class_definition["class_name"]
+          obj = RocketAMF::ClassMapper.get_ruby_obj class_definition["class_name"]
           @object_cache << obj
 
           if class_definition['externalizable']
@@ -337,7 +337,7 @@ module RocketAMF
               end
             end
 
-            ClassMapper.populate_ruby_obj obj, props, dynamic_props
+            RocketAMF::ClassMapper.populate_ruby_obj obj, props, dynamic_props
           end
           obj
         end

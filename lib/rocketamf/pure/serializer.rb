@@ -98,7 +98,7 @@ module RocketAMF
         @ref_cache.add_obj obj
 
         # Is it a typed object?
-        class_name = ClassMapper.get_as_class_name obj
+        class_name = RocketAMF::ClassMapper.get_as_class_name obj
         if class_name
           stream << AMF0_TYPED_OBJECT_MARKER
           stream << pack_int16_network(class_name.length)
@@ -114,7 +114,7 @@ module RocketAMF
       include RocketAMF::Pure::WriteIOHelpers
       def write_prop_list obj, stream
         # Write prop list
-        props = ClassMapper.props_for_serialization obj
+        props = RocketAMF::ClassMapper.props_for_serialization obj
         props.sort.each do |key, value| # Sort keys before writing
           stream << pack_int16_network(key.length)
           stream << key
@@ -248,7 +248,7 @@ module RocketAMF
           stream << AMF3_DYNAMIC_OBJECT
 
           # Write class name/anonymous
-          class_name = ClassMapper.get_as_class_name obj
+          class_name = RocketAMF::ClassMapper.get_as_class_name obj
           if class_name
             write_utf8_vr class_name, stream
           else
@@ -256,7 +256,7 @@ module RocketAMF
           end
 
           # Write out properties
-          props = ClassMapper.props_for_serialization obj
+          props = RocketAMF::ClassMapper.props_for_serialization obj
           props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
             write_utf8_vr key.to_s, stream
             serialize val, stream
