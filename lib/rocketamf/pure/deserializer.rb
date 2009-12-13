@@ -44,6 +44,8 @@ module RocketAMF
           read_typed_object source
         when AMF0_AMF3_MARKER
           AMF3Deserializer.new.deserialize(source)
+        else
+          raise AMFError, "Invalid type: #{type}"
         end
       end
 
@@ -164,32 +166,34 @@ module RocketAMF
         source = StringIO.new(source) unless StringIO === source
         type = read_int8 source unless type
         case type
-          when AMF3_UNDEFINED_MARKER
-            nil
-          when AMF3_NULL_MARKER
-            nil
-          when AMF3_FALSE_MARKER
-            false
-          when AMF3_TRUE_MARKER
-            true
-          when AMF3_INTEGER_MARKER
-            read_integer source
-          when AMF3_DOUBLE_MARKER
-            read_number source
-          when AMF3_STRING_MARKER
-            read_string source
-          when AMF3_XML_DOC_MARKER
-            #read_xml_string
-          when AMF3_DATE_MARKER
-            read_date source
-          when AMF3_ARRAY_MARKER
-            read_array source
-          when AMF3_OBJECT_MARKER
-            read_object source
-          when AMF3_XML_MARKER
-            #read_amf3_xml
-          when AMF3_BYTE_ARRAY_MARKER
-            #read_amf3_byte_array
+        when AMF3_UNDEFINED_MARKER
+          nil
+        when AMF3_NULL_MARKER
+          nil
+        when AMF3_FALSE_MARKER
+          false
+        when AMF3_TRUE_MARKER
+          true
+        when AMF3_INTEGER_MARKER
+          read_integer source
+        when AMF3_DOUBLE_MARKER
+          read_number source
+        when AMF3_STRING_MARKER
+          read_string source
+        when AMF3_XML_DOC_MARKER
+          #read_xml_string
+        when AMF3_DATE_MARKER
+          read_date source
+        when AMF3_ARRAY_MARKER
+          read_array source
+        when AMF3_OBJECT_MARKER
+          read_object source
+        when AMF3_XML_MARKER
+          #read_amf3_xml
+        when AMF3_BYTE_ARRAY_MARKER
+          #read_amf3_byte_array
+        else
+          raise AMFError, "Invalid type: #{type}"
         end
       end
 
