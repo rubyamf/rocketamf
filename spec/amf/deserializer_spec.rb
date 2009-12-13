@@ -211,7 +211,7 @@ describe "when deserializing" do
         output.should == []
       end
 
-      it "should deserialize an array of primatives" do
+      it "should deserialize an array of primitives" do
         input = object_fixture("amf3-primArray.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == [1,2,3,4,5]
@@ -265,6 +265,19 @@ describe "when deserializing" do
         obj1 = {:foo => "bar"}
         obj2 = {:foo => obj1[:foo]}
         output.should == [[obj1, obj2], "bar", [obj1, obj2]]
+      end
+
+      it "should keep reference of duplicate object traits" do
+        class RubyClass
+          attr_accessor :foo, :baz
+        end
+        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
+
+        input = object_fixture("amf3-traitRef.bin")
+        output = RocketAMF.deserialize(input, 3)
+
+        output[0].foo.should == "foo"
+        output[1].foo.should == "bar"
       end
 
       it "should keep references of duplicate arrays" do
