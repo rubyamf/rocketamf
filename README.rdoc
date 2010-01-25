@@ -8,13 +8,49 @@ A fast AMF serializer/deserializer and request/response wrappers to simplify rem
 
 == EXAMPLE:
 
-NEED TO WRITE SOMETHING HERE
+  # helloworld.ru
+
+  require 'rocketamf'
+
+  class HelloWorldApp
+    APPLICATION_AMF = 'application/x-amf'.freeze
+
+    def call env
+      if is_amf?(env)
+        # Wrap request and response
+        env['rack.input'].rewind
+        request = RocketAMF::Request.new.populate_from_stream(env['rack.input'].read)
+        response = RocketAMF::Response.new
+
+        # Handle request
+        response.each_method_call request do |method, args|
+          raise "Service #{method} does not exists" unless method == 'App.helloWorld'
+          'Hello world'
+        end
+
+        # Pass back response
+        response_str = response.serialize
+        return [200, {'Content-Type' => APPLICATION_AMF, 'Content-Length' => response_str.length.to_s}, [response_str]]
+      else
+        return [200, {'Content-Type' => 'text/plain', 'Content-Length' => '16' }, ["Rack AMF gateway"]]
+      end
+    end
+
+    private
+    def is_amf? env
+      return false unless env['CONTENT_TYPE'] == APPLICATION_AMF
+      return false unless env['PATH_INFO'] == '/amf'
+      return true
+    end
+  end
+
+  run HelloWorldApp.new
 
 == LICENSE:
 
 (The MIT License)
 
-Copyright (c) 2009 Tony Hillerson based on work by Aaron Smith
+Copyright (c) 2009 Stephen Augenstein and Jacob Smith
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
