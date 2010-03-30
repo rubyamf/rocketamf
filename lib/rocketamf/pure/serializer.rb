@@ -157,6 +157,8 @@ module RocketAMF
           write_string obj.to_s, stream
         elsif obj.is_a?(Time)
           write_date obj, stream
+        elsif obj.is_a?(StringIO)
+          write_byte_array obj, stream
         elsif obj.is_a?(Array)
           write_array obj, stream
         elsif obj.is_a?(Hash) || obj.is_a?(Object)
@@ -214,6 +216,16 @@ module RocketAMF
           seconds = (date.to_f * 1000).to_i
           stream << pack_integer(AMF3_NULL_MARKER)
           stream << pack_double(seconds)
+        end
+      end
+
+      def write_byte_array array, stream
+        stream << AMF3_BYTE_ARRAY_MARKER
+        if @object_cache[array] != nil
+          write_reference @object_cache[array], stream
+        else
+          @object_cache.add_obj array
+          write_utf8_vr array.string, stream
         end
       end
 

@@ -168,7 +168,7 @@ describe "when deserializing" do
       end
 
       #BAH! Who sends XML over AMF?
-      it "should deserialize a REXML document"
+      it "should deserialize XML"
     end
 
     describe "objects" do
@@ -227,7 +227,13 @@ describe "when deserializing" do
         output.should == [h1, h2, so1, {:foo_three => nil}, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
       end
 
-      it "should deserialize a byte array"
+      it "should deserialize a byte array" do
+        input = object_fixture("amf3-byteArray.bin")
+        output = RocketAMF.deserialize(input, 3)
+
+        output.should be_a StringIO
+        output.string.should == "\000\003これtest\100"
+      end
     end
 
     describe "and implementing the AMF Spec" do
@@ -299,7 +305,13 @@ describe "when deserializing" do
       end
 
       it "should keep references of duplicate XML and XMLDocuments"
-      it "should keep references of duplicate byte arrays"
+
+      it "should keep references of duplicate byte arrays" do
+        input = object_fixture("amf3-byteArrayRef.bin")
+        output = RocketAMF.deserialize(input, 3)
+        output[0].object_id.should == output[1].object_id
+        output[0].string.should == "ASDF"
+      end
 
       it "should deserialize a deep object graph with circular references" do
         input = object_fixture("amf3-graphMember.bin")

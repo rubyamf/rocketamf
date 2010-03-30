@@ -191,7 +191,7 @@ module RocketAMF
         when AMF3_XML_MARKER
           #read_amf3_xml
         when AMF3_BYTE_ARRAY_MARKER
-          #read_amf3_byte_array
+          read_amf3_byte_array source
         else
           raise AMFError, "Invalid type: #{type}"
         end
@@ -242,16 +242,27 @@ module RocketAMF
           return @string_cache[reference]
         else
           length = type >> 1
-          #HACK needed for ['',''] array of empty strings
-          #It may be better to take one more parameter that
-          #would specify whether or not they expect us to return
-          #a string
-          str = "" #if stringRequest
+          str = ""
           if length > 0
             str = source.read(length)
             @string_cache << str
           end
           return str
+        end
+      end
+
+      def read_amf3_byte_array source
+        type = read_integer source
+        isReference = (type & 0x01) == 0
+
+        if isReference
+          reference = type >> 1
+          return @object_cache[reference]
+        else
+          length = type >> 1
+          obj = StringIO.new source.read(length)
+          @object_cache << obj
+          obj
         end
       end
 

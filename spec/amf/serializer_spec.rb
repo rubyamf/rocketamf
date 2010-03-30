@@ -155,7 +155,7 @@ describe "when serializing" do
       end
 
       #BAH! Who sends XML over AMF?
-      it "should serialize a REXML document"
+      it "should serialize XML"
     end
 
     describe "objects" do
@@ -225,7 +225,12 @@ describe "when serializing" do
         output.should == expected
       end
 
-      it "should serialize a byte array"
+      it "should serialize a byte array" do
+        expected = object_fixture("amf3-byteArray.bin")
+        input = StringIO.new "\000\003これtest\100"
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
     end
 
     describe "and implementing the AMF Spec" do
@@ -296,7 +301,15 @@ describe "when serializing" do
       end
 
       it "should keep references of duplicate XML and XMLDocuments"
-      it "should keep references of duplicate byte arrays"
+
+      it "should keep references of duplicate byte arrays" do
+        b = StringIO.new "ASDF"
+
+        expected = object_fixture("amf3-byteArrayRef.bin")
+        input = [b, b]
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
 
       it "should serialize a deep object graph with circular references" do
         class GraphMember
