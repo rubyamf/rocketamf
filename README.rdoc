@@ -1,50 +1,22 @@
 == DESCRIPTION:
 
-A fast AMF serializer/deserializer and request/response wrappers to simplify remoting implementation.
+RocketAMF is a full featured AMF0/3 serializer and deserializer with support for
+Flash -> Ruby and Ruby -> Flash class mapping, custom serializers, remoting
+gateway helpers that follow AMF0/3 messaging specs, and a suite of specs to
+ensure adherence to the specification documents put out by Adobe.
 
 == INSTALL:
 
   gem install RocketAMF --source="http://gemcutter.org"
 
-== EXAMPLE:
-
-  # helloworld.ru
+== SIMPLE EXAMPLE:
 
   require 'rocketamf'
 
-  class HelloWorldApp
-    APPLICATION_AMF = 'application/x-amf'.freeze
-
-    def call env
-      if is_amf?(env)
-        # Wrap request and response
-        env['rack.input'].rewind
-        request = RocketAMF::Request.new.populate_from_stream(env['rack.input'].read)
-        response = RocketAMF::Response.new
-
-        # Handle request
-        response.each_method_call request do |method, args|
-          raise "Service #{method} does not exists" unless method == 'App.helloWorld'
-          'Hello world'
-        end
-
-        # Pass back response
-        response_str = response.serialize
-        return [200, {'Content-Type' => APPLICATION_AMF, 'Content-Length' => response_str.length.to_s}, [response_str]]
-      else
-        return [200, {'Content-Type' => 'text/plain', 'Content-Length' => '16' }, ["Rack AMF gateway"]]
-      end
-    end
-
-    private
-    def is_amf? env
-      return false unless env['CONTENT_TYPE'] == APPLICATION_AMF
-      return false unless env['PATH_INFO'] == '/amf'
-      return true
-    end
+  hash = {:apple => "Apfel", :red => "Rot", :eyes => "Augen"}
+  File.open("amf.dat", 'w') do |f|
+    f.write RocketAMF.serialize(hash, 3) # Use AMF3 encoding because it's smaller
   end
-
-  run HelloWorldApp.new
 
 == LICENSE:
 

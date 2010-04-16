@@ -3,8 +3,6 @@ require 'rocketamf/values/array_collection'
 require 'rocketamf/values/messages'
 
 module RocketAMF
-  # == Class Mapping
-  #
   # Handles class name mapping between actionscript and ruby and assists in
   # serializing and deserializing data between them. Simply map an AS class to a
   # ruby class and when the object is (de)serialized it will end up as the
@@ -29,8 +27,6 @@ module RocketAMF
   # Populators are processed in insert order and must respond to the <tt>can_handle?</tt>
   # and <tt>populate</tt> methods.
   #
-  # Example:
-  #
   #   class CustomPopulator
   #     def can_handle? obj
   #       true
@@ -43,10 +39,9 @@ module RocketAMF
   #   end
   #   RocketAMF::ClassMapper.object_populators << CustomPopulator.new
   #
+  #
   # Serializers are also processed in insert order and must respond to the
   # <tt>can_handle?</tt> and <tt>serialize</tt> methods.
-  #
-  # Example:
   #
   #   class CustomSerializer
   #     def can_handle? obj
@@ -65,7 +60,9 @@ module RocketAMF
   # mapping completely. In this case, simply assign an instance of your own class
   # mapper to <tt>RocketAMF::ClassMapper</tt> after loading RocketAMF. Through
   # the magic of <tt>const_missing</tt>, <tt>ClassMapper</tt> is only defined after
-  # the first access by default, so you get no annoying warning messages.
+  # the first access by default, so you get no annoying warning messages. Custom
+  # class mappers must implement the following methods: <tt>get_as_class_name</tt>,
+  # <tt>get_ruby_obj</tt>, <tt>populate_ruby_obj</tt>, <tt>props_for_serialization</tt>.
   #
   # Example:
   #
@@ -163,7 +160,8 @@ module RocketAMF
     end
 
     # Instantiates a ruby object using the mapping configuration based on the
-    # source AS class name. If there is no mapping defined, it returns a hash.
+    # source AS class name. If there is no mapping defined, it returns a
+    # <tt>RocketAMF::Values::TypedHash</tt> with the serialized class name.
     def get_ruby_obj as_class_name
       ruby_class_name = mappings.get_ruby_class_name as_class_name
       if ruby_class_name.nil?
