@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 describe "when deserializing" do
@@ -85,9 +87,6 @@ describe "when deserializing" do
     end
 
     it "should deserialize a mapped object as a mapped ruby class instance" do
-      class RubyClass
-        attr_accessor :foo, :baz
-      end
       RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
 
       input = object_fixture("amf0-typed-object.bin")
@@ -186,9 +185,6 @@ describe "when deserializing" do
       end
 
       it "should deserialize a mapped object as a mapped ruby class instance" do
-        class RubyClass
-          attr_accessor :foo, :baz
-        end
         RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
 
         input = object_fixture("amf3-typedObject.bin")
@@ -231,8 +227,10 @@ describe "when deserializing" do
         input = object_fixture("amf3-byteArray.bin")
         output = RocketAMF.deserialize(input, 3)
 
-        output.should be_a StringIO
-        output.string.should == "\000\003これtest\100"
+        output.should be_a(StringIO)
+        expected = "\000\003これtest\100"
+        expected.force_encoding("ASCII-8BIT") if expected.respond_to?(:force_encoding)
+        output.string.should == expected
       end
     end
 
@@ -274,9 +272,6 @@ describe "when deserializing" do
       end
 
       it "should keep reference of duplicate object traits" do
-        class RubyClass
-          attr_accessor :foo, :baz
-        end
         RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
 
         input = object_fixture("amf3-traitRef.bin")

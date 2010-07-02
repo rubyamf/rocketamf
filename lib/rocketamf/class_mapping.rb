@@ -218,7 +218,7 @@ module RocketAMF
       (ruby_obj.public_methods - @ignored_props).each do |method_name|
         # Add them to the prop hash if they take no arguments
         method_def = ruby_obj.method(method_name)
-        props[method_name] = ruby_obj.send(method_name) if method_def.arity == 0
+        props[method_name.to_s] = ruby_obj.send(method_name) if method_def.arity == 0
       end
       props
     end

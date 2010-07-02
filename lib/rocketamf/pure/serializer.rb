@@ -34,6 +34,7 @@ module RocketAMF
         elsif obj.is_a?(Object)
           write_object obj, stream
         end
+        stream.force_encoding("UTF-8") if stream.respond_to?(:force_encoding)
         stream
       end
 
@@ -52,7 +53,8 @@ module RocketAMF
       end
 
       def write_string str, stream
-        len = str.length
+        str = str.encode("UTF-8") if str.respond_to?(:encode)
+        len = str.bytesize
         if len > 2**16-1
           stream << AMF0_LONG_STRING_MARKER
           stream << pack_word32_network(len)
@@ -100,8 +102,9 @@ module RocketAMF
         # Is it a typed object?
         class_name = RocketAMF::ClassMapper.get_as_class_name obj
         if class_name
+          class_name = class_name.encode("UTF-8") if class_name.respond_to?(:encode)
           stream << AMF0_TYPED_OBJECT_MARKER
-          stream << pack_int16_network(class_name.length)
+          stream << pack_int16_network(class_name.bytesize)
           stream << class_name
         else
           stream << AMF0_OBJECT_MARKER
@@ -116,7 +119,8 @@ module RocketAMF
         # Write prop list
         props = RocketAMF::ClassMapper.props_for_serialization obj
         props.sort.each do |key, value| # Sort keys before writing
-          stream << pack_int16_network(key.length)
+          key = key.encode("UTF-8") if key.respond_to?(:encode)
+          stream << pack_int16_network(key.bytesize)
           stream << key
           serialize value, stream
         end
@@ -164,6 +168,7 @@ module RocketAMF
         elsif obj.is_a?(Hash) || obj.is_a?(Object)
           write_object obj, stream
         end
+        stream.force_encoding("UTF-8") if stream.respond_to?(:force_encoding)
         stream
       end
 
@@ -292,7 +297,8 @@ module RocketAMF
           @string_cache.add_obj str
 
           # Build AMF string
-          header = str.length << 1 # make room for a low bit of 1
+          str = str.encode("UTF-8") if str.respond_to?(:encode)
+          header = str.bytesize << 1 # make room for a low bit of 1
           header = header | 1 # set the low bit to 1
           stream << pack_integer(header)
           stream << str

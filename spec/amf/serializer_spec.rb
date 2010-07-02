@@ -1,3 +1,5 @@
+# encoding: UTF-8
+
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
 require 'rexml/document'
@@ -34,9 +36,6 @@ describe "when serializing" do
     end
 
     it "should serialize references" do
-      class OtherClass
-        attr_accessor :foo, :bar
-      end
       obj = OtherClass.new
       obj.foo = "baz"
       obj.bar = 3.14
@@ -51,14 +50,11 @@ describe "when serializing" do
     end
   
     it "should serialize hashes" do
-      output = RocketAMF.serialize({:a => 'b', :c => 'd'}, 0)
+      output = RocketAMF.serialize({:a => 'b', 'c' => 'd'}, 0)
       output.should == object_fixture('amf0-hash.bin')
     end
 
     it "should serialize unmapped objects" do
-      class RubyClass
-        attr_accessor :foo, :baz
-      end
       obj = RubyClass.new
       obj.foo = "bar"
 
@@ -67,9 +63,6 @@ describe "when serializing" do
     end
 
     it "should serialize mapped objects" do
-      class RubyClass
-        attr_accessor :foo, :baz
-      end
       obj = RubyClass.new
       obj.foo = "bar"
       RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
@@ -188,7 +181,7 @@ describe "when serializing" do
       it "should serialize a hash as a dynamic anonymous object" do
         hash = {}
         hash[:answer] = 42
-        hash[:foo] = "bar"
+        hash['foo'] = "bar"
 
         expected = object_fixture("amf3-hash.bin")
         input = hash
@@ -313,8 +306,8 @@ describe "when serializing" do
 
       it "should serialize a deep object graph with circular references" do
         class GraphMember
-          attr_accessor :parent
           attr_accessor :children
+          attr_accessor :parent
 
           def initialize
             self.children = []

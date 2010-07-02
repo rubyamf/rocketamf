@@ -1,14 +1,15 @@
 require File.dirname(__FILE__) + '/../spec_helper.rb'
 
-describe RocketAMF::ClassMapping do
-  before(:all) do
-    class ClassMappingTest
-      attr_accessor :prop_a
-      attr_accessor :prop_b
-      attr_accessor :prop_c
-    end
-  end
+class ClassMappingTest
+  attr_accessor :prop_a
+  attr_accessor :prop_b
+  attr_accessor :prop_c
+end
+class ClassMappingTest2 < ClassMappingTest; end;
 
+module ANamespace; class TestRubyClass; end; end
+
+describe RocketAMF::ClassMapping do
   before :each do
     @mapper = RocketAMF::ClassMapping.new
     @mapper.define do |m|
@@ -34,7 +35,6 @@ describe RocketAMF::ClassMapping do
     end
 
     it "should properly instantiate namespaced classes" do
-      module ANamespace; class TestRubyClass; end; end
       @mapper.define {|m| m.map :as => 'ASClass', :ruby => 'ANamespace::TestRubyClass'}
       @mapper.get_ruby_obj('ASClass').should be_a(ANamespace::TestRubyClass)
     end
@@ -110,7 +110,7 @@ describe RocketAMF::ClassMapping do
 
   describe "property extractor" do
     it "should extract hash properties" do
-      hash = {:a => 'test1', :b => 'test2'}
+      hash = {:a => 'test1', 'b' => 'test2'}
       props = @mapper.props_for_serialization(hash)
       props.should == {'a' => 'test1', 'b' => 'test2'}
     end
@@ -125,8 +125,6 @@ describe RocketAMF::ClassMapping do
     end
 
     it "should extract inherited object properties" do
-      class ClassMappingTest2 < ClassMappingTest
-      end
       obj = ClassMappingTest2.new
       obj.prop_a = 'Test A'
       obj.prop_b = 'Test B'
