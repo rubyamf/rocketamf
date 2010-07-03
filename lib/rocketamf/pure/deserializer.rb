@@ -194,6 +194,8 @@ module RocketAMF
           #read_amf3_xml
         when AMF3_BYTE_ARRAY_MARKER
           read_amf3_byte_array source
+        when AMF3_DICT_MARKER
+          read_dict source
         else
           raise AMFError, "Invalid type: #{type}"
         end
@@ -372,6 +374,25 @@ module RocketAMF
           time = Time.at(seconds)
           @object_cache << time
           time
+        end
+      end
+
+      def read_dict source
+        type = read_integer source
+        # Currently duplicate dictionaries send false, but I'll leave this in here just in case
+        isReference = (type & 0x01) == 0
+        if isReference
+          reference = type >> 1
+          return @object_cache[reference]
+        else
+          dict = {}
+          @object_cache << dict
+          length = type >> 1
+          skip = read_integer source # TODO: Handle when specs are updated
+          0.upto(length - 1) do |i|
+            dict[deserialize(source)] = deserialize(source)
+          end
+          dict
         end
       end
     end

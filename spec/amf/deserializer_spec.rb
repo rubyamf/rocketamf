@@ -232,6 +232,25 @@ describe "when deserializing" do
         expected.force_encoding("ASCII-8BIT") if expected.respond_to?(:force_encoding)
         output.string.should == expected
       end
+
+      it "should deserialize an empty dictionary" do
+        input = object_fixture("amf3-emptyDictionary.bin")
+        output = RocketAMF.deserialize(input, 3)
+        output.should == {}
+      end
+
+      it "should deserialize a dictionary" do
+        input = object_fixture("amf3-dictionary.bin")
+        output = RocketAMF.deserialize(input, 3)
+
+        keys = output.keys
+        keys.length.should == 2
+        obj_key, str_key = keys[0].is_a?(RocketAMF::Values::TypedHash) ? [keys[0], keys[1]] : [keys[1], keys[0]]
+        obj_key.type.should == 'org.rocketAMF.ASClass'
+        output[obj_key].should == "asdf2"
+        str_key.should == "bar"
+        output[str_key].should == "asdf1"
+      end
     end
 
     describe "and implementing the AMF Spec" do

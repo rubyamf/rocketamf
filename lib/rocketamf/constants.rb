@@ -33,6 +33,7 @@ module RocketAMF
   AMF3_OBJECT_MARKER       =  0x0A #"\n"
   AMF3_XML_MARKER          =  0x0B #"\v"
   AMF3_BYTE_ARRAY_MARKER   =  0x0C #"\f"
+  AMF3_DICT_MARKER         =  0x11 #"\021"
 
   # Other AMF3 Markers
   AMF3_EMPTY_STRING             = 0x01
