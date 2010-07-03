@@ -12,13 +12,13 @@ require 'rocketamf'
 
 def request_fixture(binary_path)
   data = File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path).read
-  data.force_encoding("UTF-8") if data.respond_to?(:force_encoding)
+  data.force_encoding("ASCII-8BIT") if data.respond_to?(:force_encoding)
   data
 end
 
 def object_fixture(binary_path)
   data = File.open(File.dirname(__FILE__) + '/fixtures/objects/' + binary_path).read
-  data.force_encoding("UTF-8") if data.respond_to?(:force_encoding)
+  data.force_encoding("ASCII-8BIT") if data.respond_to?(:force_encoding)
   data
 end
 

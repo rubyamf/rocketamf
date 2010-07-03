@@ -20,7 +20,7 @@ describe "when deserializing" do
       output.should === true
     end
 
-    it "should deserialize strings" do
+    it "should deserialize UTF8 strings" do
       input = object_fixture('amf0-string.bin')
       output = RocketAMF.deserialize(input, 0)
       output.should == "this is a テスト"

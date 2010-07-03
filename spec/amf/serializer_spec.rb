@@ -70,6 +70,15 @@ describe "when serializing" do
       output = RocketAMF.serialize(obj, 0)
       output.should == object_fixture('amf0-typed-object.bin')
     end
+
+    if "".respond_to?(:force_encoding)
+      it "should support multiple encodings" do
+        shift_str = "\x53\x68\x69\x66\x74\x20\x83\x65\x83\x58\x83\x67".force_encoding("Shift_JIS") # "Shift テスト"
+        utf_str = "\x55\x54\x46\x20\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88".force_encoding("UTF-8") # "UTF テスト"
+        output = RocketAMF.serialize({"0" => 5, "1" => shift_str, "2" => utf_str, "3" => 5}, 0)
+        output.should == object_fixture("amf0-complexEncodedStringArray.bin")
+      end
+    end
   end
 
   describe "AMF3" do
@@ -328,6 +337,27 @@ describe "when serializing" do
         input = parent
         output = RocketAMF.serialize(input, 3)
         output.should == expected
+      end
+    end
+
+    if "".respond_to?(:force_encoding)
+      describe "and handling encodings" do
+        it "should support multiple encodings" do
+          shift_str = "\x53\x68\x69\x66\x74\x20\x83\x65\x83\x58\x83\x67".force_encoding("Shift_JIS") # "Shift テスト"
+          utf_str = "\x55\x54\x46\x20\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88".force_encoding("UTF-8") # "UTF テスト"
+          output = RocketAMF.serialize([5, shift_str, utf_str, 5], 3)
+          output.should == object_fixture("amf3-complexEncodedStringArray.bin")
+        end
+
+        it "should keep references of duplicate strings with different encodings" do
+          # String is "this is a テスト"
+          shift_str = "\x74\x68\x69\x73\x20\x69\x73\x20\x61\x20\x83\x65\x83\x58\x83\x67".force_encoding("Shift_JIS")
+          utf_str   = "\x74\x68\x69\x73\x20\x69\x73\x20\x61\x20\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88".force_encoding("UTF-8")
+
+          expected = object_fixture("amf3-encodedStringRef.bin")
+          output = RocketAMF.serialize([shift_str, utf_str], 3)
+          output.should == expected
+        end
       end
     end
   end

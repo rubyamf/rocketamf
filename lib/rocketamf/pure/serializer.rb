@@ -34,7 +34,6 @@ module RocketAMF
         elsif obj.is_a?(Object)
           write_object obj, stream
         end
-        stream.force_encoding("UTF-8") if stream.respond_to?(:force_encoding)
         stream
       end
 
@@ -53,7 +52,7 @@ module RocketAMF
       end
 
       def write_string str, stream
-        str = str.encode("UTF-8") if str.respond_to?(:encode)
+        str = str.encode("UTF-8").force_encoding("ASCII-8BIT") if str.respond_to?(:encode)
         len = str.bytesize
         if len > 2**16-1
           stream << AMF0_LONG_STRING_MARKER
@@ -102,7 +101,7 @@ module RocketAMF
         # Is it a typed object?
         class_name = RocketAMF::ClassMapper.get_as_class_name obj
         if class_name
-          class_name = class_name.encode("UTF-8") if class_name.respond_to?(:encode)
+          class_name = class_name.encode("UTF-8").force_encoding("ASCII-8BIT") if class_name.respond_to?(:encode)
           stream << AMF0_TYPED_OBJECT_MARKER
           stream << pack_int16_network(class_name.bytesize)
           stream << class_name
@@ -119,7 +118,7 @@ module RocketAMF
         # Write prop list
         props = RocketAMF::ClassMapper.props_for_serialization obj
         props.sort.each do |key, value| # Sort keys before writing
-          key = key.encode("UTF-8") if key.respond_to?(:encode)
+          key = key.encode("UTF-8").force_encoding("ASCII-8BIT") if key.respond_to?(:encode)
           stream << pack_int16_network(key.bytesize)
           stream << key
           serialize value, stream
@@ -168,7 +167,6 @@ module RocketAMF
         elsif obj.is_a?(Hash) || obj.is_a?(Object)
           write_object obj, stream
         end
-        stream.force_encoding("UTF-8") if stream.respond_to?(:force_encoding)
         stream
       end
 
@@ -288,6 +286,8 @@ module RocketAMF
       include RocketAMF::Pure::WriteIOHelpers
 
       def write_utf8_vr str, stream
+        str = str.encode("UTF-8").force_encoding("ASCII-8BIT") if str.respond_to?(:encode)
+
         if str == ''
           stream << AMF3_EMPTY_STRING
         elsif @string_cache[str] != nil
@@ -297,7 +297,6 @@ module RocketAMF
           @string_cache.add_obj str
 
           # Build AMF string
-          str = str.encode("UTF-8") if str.respond_to?(:encode)
           header = str.bytesize << 1 # make room for a low bit of 1
           header = header | 1 # set the low bit to 1
           stream << pack_integer(header)

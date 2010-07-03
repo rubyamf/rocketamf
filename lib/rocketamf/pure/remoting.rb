@@ -62,7 +62,7 @@ module RocketAMF
         stream << pack_int16_network(@headers.length) # Header count
         @headers.each do |h|
           name_str = h.name
-          name_str.encode!("UTF-8") if name_str.respond_to?(:encode)
+          name_str.encode!("UTF-8").force_encoding("ASCII-8BIT") if name_str.respond_to?(:encode)
           stream << pack_int16_network(name_str.bytesize)
           stream << name_str
           stream << pack_int8(h.must_understand ? 1 : 0)
@@ -74,12 +74,12 @@ module RocketAMF
         stream << pack_int16_network(@messages.length) # Message count
         @messages.each do |m|
           uri_str = m.target_uri
-          uri_str.encode!("UTF-8") if uri_str.respond_to?(:encode)
+          uri_str.encode!("UTF-8").force_encoding("ASCII-8BIT") if uri_str.respond_to?(:encode)
           stream << pack_int16_network(uri_str.bytesize)
           stream << uri_str
 
           uri_str = m.response_uri
-          uri_str.encode!("UTF-8") if uri_str.respond_to?(:encode)
+          uri_str.encode!("UTF-8").force_encoding("ASCII-8BIT") if uri_str.respond_to?(:encode)
           stream << pack_int16_network(uri_str.bytesize)
           stream << uri_str
 
@@ -88,7 +88,6 @@ module RocketAMF
           stream << RocketAMF.serialize(m.data, @amf_version)
         end
 
-        stream.force_encoding("UTF-8") if stream.respond_to?(:force_encoding)
         stream
       end
 
