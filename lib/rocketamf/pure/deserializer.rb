@@ -39,7 +39,7 @@ module RocketAMF
         when AMF0_UNSUPPORTED_MARKER
           nil
         when AMF0_XML_MARKER
-          #read_xml source
+          read_string source, true
         when AMF0_TYPED_OBJECT_MARKER
           read_typed_object source
         when AMF0_AMF3_MARKER
@@ -182,16 +182,14 @@ module RocketAMF
           read_number source
         when AMF3_STRING_MARKER
           read_string source
-        when AMF3_XML_DOC_MARKER
-          #read_xml_string
+        when AMF3_XML_DOC_MARKER, AMF3_XML_MARKER
+          read_xml source
         when AMF3_DATE_MARKER
           read_date source
         when AMF3_ARRAY_MARKER
           read_array source
         when AMF3_OBJECT_MARKER
           read_object source
-        when AMF3_XML_MARKER
-          #read_amf3_xml
         when AMF3_BYTE_ARRAY_MARKER
           read_amf3_byte_array source
         when AMF3_DICT_MARKER
@@ -251,6 +249,25 @@ module RocketAMF
             str = source.read(length)
             str.force_encoding("UTF-8") if str.respond_to?(:force_encoding)
             @string_cache << str
+          end
+          return str
+        end
+      end
+
+      def read_xml source
+        type = read_integer source
+        isReference = (type & 0x01) == 0
+
+        if isReference
+          reference = type >> 1
+          return @object_cache[reference]
+        else
+          length = type >> 1
+          str = ""
+          if length > 0
+            str = source.read(length)
+            str.force_encoding("UTF-8") if str.respond_to?(:force_encoding)
+            @object_cache << str
           end
           return str
         end

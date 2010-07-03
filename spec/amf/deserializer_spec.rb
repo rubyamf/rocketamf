@@ -76,7 +76,11 @@ describe "when deserializing" do
       output.should == Time.utc(2003, 2, 13, 5)
     end
 
-    it "should deserialize XML"
+    it "should deserialize an XML document" do
+      input = object_fixture('amf0-xmlDoc.bin')
+      output = RocketAMF.deserialize(input, 0)
+      output.should == '<parent><child prop="test" /></parent>'
+    end
 
     it "should deserialize an unmapped object as a dynamic anonymous object" do
       input = object_fixture("amf0-typed-object.bin")
@@ -166,8 +170,17 @@ describe "when deserializing" do
         output.should == Time.at(0)
       end
 
-      #BAH! Who sends XML over AMF?
-      it "should deserialize XML"
+      it "should deserialize XML" do
+        # XMLDocument tag
+        input = object_fixture("amf3-xmlDoc.bin")
+        output = RocketAMF.deserialize(input, 3)
+        output.should == '<parent><child prop="test" /></parent>'
+
+        # XML tag
+        input = object_fixture("amf3-xml.bin")
+        output = RocketAMF.deserialize(input, 3)
+        output.should == '<parent><child prop="test"/></parent>'
+      end
     end
 
     describe "objects" do
@@ -318,7 +331,11 @@ describe "when deserializing" do
         output.should == [a,b,a,b]
       end
 
-      it "should keep references of duplicate XML and XMLDocuments"
+      it "should keep references of duplicate XML and XMLDocuments" do
+        input = object_fixture("amf3-xmlRef.bin")
+        output = RocketAMF.deserialize(input, 3)
+        output.should == ['<parent><child prop="test"/></parent>', '<parent><child prop="test"/></parent>']
+      end
 
       it "should keep references of duplicate byte arrays" do
         input = object_fixture("amf3-byteArrayRef.bin")

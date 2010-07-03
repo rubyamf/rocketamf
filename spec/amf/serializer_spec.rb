@@ -155,9 +155,6 @@ describe "when serializing" do
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
-
-      #BAH! Who sends XML over AMF?
-      it "should serialize XML"
     end
 
     describe "objects" do
@@ -301,8 +298,6 @@ describe "when serializing" do
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
-
-      it "should keep references of duplicate XML and XMLDocuments"
 
       it "should keep references of duplicate byte arrays" do
         b = StringIO.new "ASDF"
