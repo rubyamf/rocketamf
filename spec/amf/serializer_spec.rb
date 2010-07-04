@@ -277,6 +277,28 @@ describe "when serializing" do
         output.should == expected
       end
 
+      it "should keep reference of duplicate object traits" do
+        obj1 = RubyClass.new
+        obj1.foo = "foo"
+        def obj1.to_amf serializer
+          stream = ""
+          serializer.write_object(self, stream, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
+          stream
+        end
+        obj2 = RubyClass.new
+        obj2.foo = "bar"
+        def obj2.to_amf serializer
+          stream = ""
+          serializer.write_object(self, stream, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
+          stream
+        end
+        input = [obj1, obj2]
+
+        expected = object_fixture("amf3-traitRef.bin")
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
       it "should keep references of duplicate arrays" do
         a = [1,2,3]
         b = %w{ a b c }

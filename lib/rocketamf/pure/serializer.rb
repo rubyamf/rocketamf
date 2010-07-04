@@ -137,6 +137,7 @@ module RocketAMF
       def initialize
         @string_cache = SerializerCache.new :string
         @object_cache = SerializerCache.new :object
+        @trait_cache = SerializerCache.new :trait
       end
 
       def version
@@ -162,6 +163,8 @@ module RocketAMF
           write_date obj, stream
         elsif obj.is_a?(StringIO)
           write_byte_array obj, stream
+        elsif obj.is_a?(RocketAMF::Values::ArrayCollection)
+          write_array_collection obj, stream
         elsif obj.is_a?(Array)
           write_array obj, stream
         elsif obj.is_a?(Hash) || obj.is_a?(Object)
@@ -232,6 +235,10 @@ module RocketAMF
         end
       end
 
+      def write_array_collection array, stream
+        write_object array, stream, {:class_name => RocketAMF::ClassMapper.get_as_class_name(array), :members => [], :externalizable => true, :dynamic => false}
+      end
+
       def write_array array, stream
         stream << AMF3_ARRAY_MARKER
         if @object_cache[array] != nil
@@ -251,7 +258,7 @@ module RocketAMF
         end
       end
 
-      def write_object obj, stream
+      def write_object obj, stream, traits=nil
         stream << AMF3_OBJECT_MARKER
         if @object_cache[obj] != nil
           write_reference @object_cache[obj], stream
@@ -259,26 +266,59 @@ module RocketAMF
           # Cache object
           @object_cache.add_obj obj
 
-          # Always serialize things as dynamic objects
-          stream << AMF3_DYNAMIC_OBJECT
+          # Calculate traits if not given
+          if traits.nil?
+            traits = {
+                      :class_name => RocketAMF::ClassMapper.get_as_class_name(obj),
+                      :members => [],
+                      :externalizable => false,
+                      :dynamic => true
+                     }
+          end
 
-          # Write class name/anonymous
-          class_name = RocketAMF::ClassMapper.get_as_class_name obj
-          if class_name
-            write_utf8_vr class_name, stream
+          # Write out traits
+          if traits[:class_name] && @trait_cache[traits] != nil
+            stream << pack_integer(@trait_cache[traits] << 2 | 0x01)
           else
-            stream << AMF3_ANONYMOUS_OBJECT
+            @trait_cache.add_obj traits if traits[:class_name]
+
+            # Write out trait header
+            header = 0x03 # Not object ref and not trait ref
+            header |= 0x02 << 2 if traits[:dynamic]
+            header |= 0x01 << 2 if traits[:externalizable]
+            header |= traits[:members].length << 4
+            stream << pack_integer(header)
+
+            # Write out class name
+            write_utf8_vr(traits[:class_name].to_s, stream)
+
+            # Write out members
+            traits[:members].each {|m| write_utf8_vr(m, stream)}
           end
 
-          # Write out properties
+          # If externalizable, take externalized data shortcut
+          if traits[:externalizable]
+            serialize obj.externalized_data, stream
+            return
+          end
+
+          # Write out sealed properties
           props = RocketAMF::ClassMapper.props_for_serialization obj
-          props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
-            write_utf8_vr key.to_s, stream
-            serialize val, stream
+          traits[:members].each do |m|
+            serialize props[m], stream
+            props.delete(m)
           end
 
-          # Write close
-          stream << AMF3_CLOSE_DYNAMIC_OBJECT
+          if traits[:dynamic]
+            # Write out dynamic properties
+            props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
+              write_utf8_vr key.to_s, stream
+              serialize val, stream
+            end
+
+            # Write close
+            stream << AMF3_CLOSE_DYNAMIC_OBJECT
+          end
         end
       end
 
@@ -311,6 +351,8 @@ module RocketAMF
           StringCache.new
         elsif type == :object
           ObjectCache.new
+        elsif type == :trait
+          TraitCache.new
         end
       end
 
@@ -336,6 +378,21 @@ module RocketAMF
 
         def add_obj obj
           self[obj.object_id] = @cache_index
+          @cache_index += 1
+        end
+      end
+
+      class TraitCache < Hash #:nodoc:
+        def initialize
+          @cache_index = 0
+        end
+
+        def [] obj
+          super(obj[:class_name])
+        end
+
+        def add_obj obj
+          self[obj[:class_name]] = @cache_index
           @cache_index += 1
         end
       end

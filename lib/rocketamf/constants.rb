@@ -37,8 +37,6 @@ module RocketAMF
 
   # Other AMF3 Markers
   AMF3_EMPTY_STRING             = 0x01
-  AMF3_ANONYMOUS_OBJECT         = 0x01
-  AMF3_DYNAMIC_OBJECT           = 0x0B
   AMF3_CLOSE_DYNAMIC_OBJECT     = 0x01
   AMF3_CLOSE_DYNAMIC_ARRAY      = 0x01
 

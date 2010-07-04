@@ -336,37 +336,39 @@ module RocketAMF
 
           if class_is_reference
             reference = class_type >> 1
-            class_definition = @trait_cache[reference]
+            traits = @trait_cache[reference]
           else
-            class_name = read_string source
             externalizable = (class_type & 0x02) != 0
             dynamic = (class_type & 0x04) != 0
             attribute_count = class_type >> 3
+            class_name = read_string source
 
             class_attributes = []
             attribute_count.times{class_attributes << read_string(source)} # Read class members
 
-            class_definition = {"class_name" => class_name,
-                                "members" => class_attributes,
-                                "externalizable" => externalizable,
-                                "dynamic" => dynamic}
-            @trait_cache << class_definition
+            traits = {
+                      :class_name => class_name,
+                      :members => class_attributes,
+                      :externalizable => externalizable,
+                      :dynamic => dynamic
+                     }
+            @trait_cache << traits
           end
 
-          obj = RocketAMF::ClassMapper.get_ruby_obj class_definition["class_name"]
+          obj = RocketAMF::ClassMapper.get_ruby_obj traits[:class_name]
           @object_cache << obj
 
-          if class_definition['externalizable']
+          if traits[:externalizable]
             obj.externalized_data = deserialize(source)
           else
             props = {}
-            class_definition['members'].each do |key|
+            traits[:members].each do |key|
               value = deserialize(source)
               props[key.to_sym] = value
             end
 
             dynamic_props = nil
-            if class_definition['dynamic']
+            if traits[:dynamic]
               dynamic_props = {}
               while (key = read_string source) && key.length != 0  do # read next key
                 value = deserialize(source)
