@@ -18,7 +18,7 @@ describe RocketAMF::Values::ErrorMessage do
   end
 
   it "should serialize as a hash in AMF0" do
-    response = RocketAMF::Response.new
+    response = RocketAMF::Envelope.new
     response.messages << RocketAMF::Message.new('1/onStatus', '', @message)
     response.serialize.should == request_fixture('amf0-error-response.bin')
   end

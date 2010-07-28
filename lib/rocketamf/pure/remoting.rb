@@ -2,9 +2,11 @@ require 'rocketamf/pure/io_helpers'
 
 module RocketAMF
   module Pure
-    # Request deserialization module - provides a method that can be included into
-    # RocketAMF::Request for deserializing the given stream.
-    module Request
+    # Included into RocketAMF::Envelope, this module replaces the
+    # populate_from_stream and serialize methods with actual working versions
+    module Envelope
+      # Included into RocketAMF::Envelope, this method handles deserializing an
+      # AMF request/response into the envelope
       def populate_from_stream stream
         stream = StringIO.new(stream) unless StringIO === stream
 
@@ -45,13 +47,8 @@ module RocketAMF
         self
       end
 
-      private
-      include RocketAMF::Pure::ReadIOHelpers
-    end
-
-    # Response serialization module - provides a method that can be included into
-    # RocketAMF::Response for deserializing the given stream.
-    module Response
+      # Included into RocketAMF::Envelope, this method handles serializing an
+      # AMF request/response into the envelope
       def serialize
         stream = ""
 
@@ -92,6 +89,7 @@ module RocketAMF
       end
 
       private
+      include RocketAMF::Pure::ReadIOHelpers
       include RocketAMF::Pure::WriteIOHelpers
     end
   end

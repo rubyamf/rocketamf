@@ -22,8 +22,8 @@ def object_fixture(binary_path)
   data
 end
 
-def create_request(binary_path)
-  RocketAMF::Request.new.populate_from_stream(StringIO.new(request_fixture(binary_path)))
+def create_envelope(binary_path)
+  RocketAMF::Envelope.new.populate_from_stream(StringIO.new(request_fixture(binary_path)))
 end
 
 # Helper classes

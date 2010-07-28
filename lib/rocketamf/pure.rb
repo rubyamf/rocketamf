@@ -18,15 +18,11 @@ module RocketAMF
   Serializer = RocketAMF::Pure::Serializer
   AMF3Serializer = RocketAMF::Pure::AMF3Serializer
 
-  # Modify request and response so they can serialize/deserialize
-  class Request
+  # Modify envelope so it can serialize/deserialize
+  class Envelope
     remove_method :populate_from_stream
-    include RocketAMF::Pure::Request
-  end
-
-  class Response
     remove_method :serialize
-    include RocketAMF::Pure::Response
+    include RocketAMF::Pure::Envelope
   end
   #:startdoc:
 end

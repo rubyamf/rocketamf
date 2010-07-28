@@ -46,8 +46,8 @@ require 'rocketamf/remoting'
 #       if is_amf?(env)
 #         # Wrap request and response
 #         env['rack.input'].rewind
-#         request = RocketAMF::Request.new.populate_from_stream(env['rack.input'].read)
-#         response = RocketAMF::Response.new
+#         request = RocketAMF::Envelope.new.populate_from_stream(env['rack.input'].read)
+#         response = RocketAMF::Envelope.new
 #
 #         # Handle request
 #         response.each_method_call request do |method, args|

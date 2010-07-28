@@ -3,7 +3,8 @@
 RocketAMF is a full featured AMF0/3 serializer and deserializer with support for
 Flash -> Ruby and Ruby -> Flash class mapping, custom serializers, remoting
 gateway helpers that follow AMF0/3 messaging specs, and a suite of specs to
-ensure adherence to the specification documents put out by Adobe.
+ensure adherence to the specification documents put out by Adobe. In addition,
+it now fully supports Ruby 1.9.
 
 == INSTALL:
 

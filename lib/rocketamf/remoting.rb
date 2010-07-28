@@ -1,41 +1,29 @@
 module RocketAMF
-  # Container for the AMF request.
-  class Request
+  # Container for the AMF request/response.
+  class Envelope
     attr_reader :amf_version, :headers, :messages
 
-    def initialize
-      @amf_version = 0
-      @headers = []
-      @messages = []
+    def initialize props={}
+      @amf_version = props[:amf_version] || 0
+      @headers = props[:headers] || []
+      @messages = props[:messages] || []
     end
 
-    # Populates the request from the given stream or string. Returns self for easy
+    # Populates the envelope from the given stream or string. Returns self for easy
     # chaining.
     #
     # Example:
     #
-    #    req = RocketAMF::Request.new.populate_from_stream(env['rack.input'].read)
+    #    req = RocketAMF::Envelope.new.populate_from_stream(env['rack.input'].read)
     #--
-    # Implemented in pure/remoting.rb RocketAMF::Pure::Request
+    # Implemented in pure/remoting.rb RocketAMF::Pure::Envelope
     def populate_from_stream stream
       raise AMFError, 'Must load "rocketamf/pure"'
     end
-  end
 
-  # Container for the response of the AMF call. Includes serialization and request
-  # handling code.
-  class Response
-    attr_accessor :amf_version, :headers, :messages
-
-    def initialize
-      @amf_version = 0
-      @headers = []
-      @messages = []
-    end
-
-    # Serializes the response to a string and returns it
+    # Serializes the envelope to a string and returns it
     #--
-    # Implemented in pure/remoting.rb RocketAMF::Pure::Response
+    # Implemented in pure/remoting.rb RocketAMF::Pure::Envelope
     def serialize
       raise AMFError, 'Must load "rocketamf/pure"'
     end
@@ -66,7 +54,7 @@ module RocketAMF
             response_value = Values::AcknowledgeMessage.new(command_msg)
           else
             e = Exception.new("CommandMessage #{command_msg.operation} not implemented")
-            e.set_backtrace ["RocketAMF::Response each_method_call"]
+            e.set_backtrace ["RocketAMF::Envelope each_method_call"]
             response_value = Values::ErrorMessage.new(command_msg, e)
           end
         when Values::RemotingMessage
@@ -95,7 +83,7 @@ module RocketAMF
       @constructed = true
     end
 
-    # Return the serialized response as a string
+    # Return the serialized envelope as a string
     def to_s
       serialize
     end
@@ -111,7 +99,21 @@ module RocketAMF
     end
   end
 
-  # RocketAMF::Request or RocketAMF::Response header
+  class Request < Envelope #:nodoc:
+    def initialize props={}
+      $stderr.puts("DEPRECATION WARNING: Use RocketAMF::Envelope instead of RocketAMF::Request")
+      super(props)
+    end
+  end
+
+  class Response < Envelope #:nodoc:
+    def initialize props={}
+      $stderr.puts("DEPRECATION WARNING: Use RocketAMF::Envelope instead of RocketAMF::Request")
+      super(props)
+    end
+  end
+
+  # RocketAMF::Envelope header
   class Header
     attr_accessor :name, :must_understand, :data
 
@@ -122,7 +124,7 @@ module RocketAMF
     end
   end
 
-  # RocketAMF::Request or RocketAMF::Response message
+  # RocketAMF::Envelope message
   class Message
     attr_accessor :target_uri, :response_uri, :data
 
