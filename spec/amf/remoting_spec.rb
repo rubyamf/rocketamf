@@ -102,5 +102,16 @@ describe RocketAMF::Envelope do
       res.messages[0].data.should be_a(RocketAMF::Values::ErrorMessage)
       res.messages[0].target_uri.should =~ /onStatus$/
     end
+
+    it "should not crash if source missing on RemotingMessage" do
+      res = RocketAMF::Envelope.new
+      req = create_envelope('remotingMessage.bin')
+      req.messages[0].data.instance_variable_set("@source", nil)
+      lambda {
+        res.each_method_call req do |method,args|
+          true
+        end
+      }.should_not raise_error
+    end
   end
 end

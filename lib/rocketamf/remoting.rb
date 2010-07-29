@@ -61,7 +61,8 @@ module RocketAMF
           # Using RemoteObject style message calls
           remoting_msg = m.data
           acknowledge_msg = Values::AcknowledgeMessage.new(remoting_msg)
-          body = dispatch_call :method => remoting_msg.source+'.'+remoting_msg.operation, :args => remoting_msg.body, :source => remoting_msg, :block => block
+          method_base = remoting_msg.source.to_s.empty? ? '' : remoting_msg.source+'.'
+          body = dispatch_call :method => method_base+remoting_msg.operation, :args => remoting_msg.body, :source => remoting_msg, :block => block
 
           # Response should be the bare ErrorMessage if there was an error
           if body.is_a?(Values::ErrorMessage)
