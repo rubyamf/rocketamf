@@ -105,13 +105,15 @@ module RocketAMF
       # Optional "root cause" of the error
       attr_accessor :rootCause
 
-      def initialize message, exception
+      def initialize message=nil, exception=nil
         super message
 
-        @e = exception
-        @faultCode = @e.class.name
-        @faultDetail = @e.backtrace.join("\n")
-        @faultString = @e.message
+        unless exception.nil?
+          @e = exception
+          @faultCode = @e.class.name
+          @faultDetail = @e.backtrace.join("\n")
+          @faultString = @e.message
+        end
       end
 
       def to_amf serializer
