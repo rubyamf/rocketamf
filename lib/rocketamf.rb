@@ -5,6 +5,15 @@ require 'rocketamf/class_mapping'
 require 'rocketamf/constants'
 require 'rocketamf/remoting'
 
+# Joc's monkeypatch for string bytesize (only available in 1.8.7+)
+if !"amf".respond_to? :bytesize
+  class String
+    def bytesize
+      self.size
+    end
+  end
+end
+
 # RocketAMF is a full featured AMF0/3 serializer and deserializer with support
 # for Flash -> Ruby and Ruby -> Flash class mapping, custom serializers,
 # remoting gateway helpers that follow AMF0/3 messaging specs, and a suite of

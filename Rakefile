@@ -34,7 +34,7 @@ spec = Gem::Specification.new do |s|
   s.extra_rdoc_files = ['README.rdoc']
   s.rdoc_options     = ['--line-numbers', '--main', 'README.rdoc']
 
-  s.authors  = ['Jacob Henry', 'Stephen Augenstein']
+  s.authors  = ['Jacob Henry', 'Stephen Augenstein', "Joc O'Connor"]
   s.email    = 'perl.programmer@gmail.com'
   s.homepage = 'http://github.com/warhammerkid/rocket-amf'
 
