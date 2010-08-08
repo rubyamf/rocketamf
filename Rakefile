@@ -23,7 +23,7 @@ end
 
 spec = Gem::Specification.new do |s|
   s.name    = 'RocketAMF'
-  s.version = '0.2.0'
+  s.version = '0.2.1'
   s.summary = 'Fast AMF serializer/deserializer with remoting request/response wrappers to simplify integration'
 
   s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb', 'spec/**/*.bin', 'spec/spec.opts']
