@@ -116,7 +116,7 @@ module RocketAMF
         end
       end
 
-      def to_amf serializer
+      def encode_amf serializer
         stream = ""
         if serializer.version == 0
           data = {

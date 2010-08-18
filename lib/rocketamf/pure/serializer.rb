@@ -13,8 +13,8 @@ module RocketAMF
       end
 
       def serialize obj, stream = ""
-        if obj.respond_to?(:to_amf)
-          stream << obj.to_amf(self)
+        if obj.respond_to?(:encode_amf)
+          stream << obj.encode_amf(self)
         elsif @ref_cache[obj] != nil
           write_reference @ref_cache[obj], stream
         elsif obj.is_a?(NilClass)
@@ -145,8 +145,8 @@ module RocketAMF
       end
 
       def serialize obj, stream = ""
-        if obj.respond_to?(:to_amf)
-          stream << obj.to_amf(self)
+        if obj.respond_to?(:encode_amf)
+          stream << obj.encode_amf(self)
         elsif obj.is_a?(NilClass)
           write_null stream
         elsif obj.is_a?(TrueClass)
