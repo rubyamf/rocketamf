@@ -84,6 +84,12 @@ module RocketAMF
       @constructed = true
     end
 
+    # Whether or not the response has been constructed. Can be used to prevent
+    # serialization when no processing has taken place.
+    def constructed?
+      @constructed
+    end
+
     # Return the serialized envelope as a string
     def to_s
       serialize
