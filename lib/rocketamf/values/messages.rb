@@ -117,18 +117,16 @@ module RocketAMF
       end
 
       def encode_amf serializer
-        stream = ""
         if serializer.version == 0
           data = {
             :faultCode => @faultCode,
             :faultDetail => @faultDetail,
             :faultString => @faultString
           }
-          serializer.write_hash(data, stream)
+          serializer.write_hash(data)
         else
-          serializer.write_object(self, stream)
+          serializer.write_object(self)
         end
-        stream
       end
     end
   end

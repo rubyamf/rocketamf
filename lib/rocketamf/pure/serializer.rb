@@ -4,215 +4,228 @@ module RocketAMF
   module Pure
     # AMF0 implementation of serializer
     class Serializer
+      attr_reader :ref_cache, :stream
+
       def initialize
         @ref_cache = SerializerCache.new :object
+        @stream = ""
       end
 
       def version
         0
       end
 
-      def serialize obj, stream = ""
+      def serialize obj
         if obj.respond_to?(:encode_amf)
-          stream << obj.encode_amf(self)
+          obj.encode_amf(self)
         elsif @ref_cache[obj] != nil
-          write_reference @ref_cache[obj], stream
+          write_reference @ref_cache[obj]
         elsif obj.is_a?(NilClass)
-          write_null stream
+          write_null
         elsif obj.is_a?(TrueClass) || obj.is_a?(FalseClass)
-          write_boolean obj, stream
+          write_boolean obj
         elsif obj.is_a?(Float) || obj.is_a?(Integer)
-          write_number obj, stream
+          write_number obj
         elsif obj.is_a?(Symbol) || obj.is_a?(String)
-          write_string obj.to_s, stream
+          write_string obj.to_s
         elsif obj.is_a?(Time)
-          write_date obj, stream
+          write_date obj
         elsif obj.is_a?(Array)
-          write_array obj, stream
+          write_array obj
         elsif obj.is_a?(Hash)
-          write_hash obj, stream
+          write_hash obj
         elsif obj.is_a?(Object)
-          write_object obj, stream
+          write_object obj
         end
-        stream
+        @stream
       end
 
-      def write_null stream
-        stream << AMF0_NULL_MARKER
+      def write_null
+        @stream << AMF0_NULL_MARKER
       end
 
-      def write_boolean bool, stream
-        stream << AMF0_BOOLEAN_MARKER
-        stream << pack_int8(bool ? 1 : 0)
+      def write_boolean bool
+        @stream << AMF0_BOOLEAN_MARKER
+        @stream << pack_int8(bool ? 1 : 0)
       end
 
-      def write_number num, stream
-        stream << AMF0_NUMBER_MARKER
-        stream << pack_double(num)
+      def write_number num
+        @stream << AMF0_NUMBER_MARKER
+        @stream << pack_double(num)
       end
 
-      def write_string str, stream
+      def write_string str
         str = str.encode("UTF-8").force_encoding("ASCII-8BIT") if str.respond_to?(:encode)
         len = str.bytesize
         if len > 2**16-1
-          stream << AMF0_LONG_STRING_MARKER
-          stream << pack_word32_network(len)
+          @stream << AMF0_LONG_STRING_MARKER
+          @stream << pack_word32_network(len)
         else
-          stream << AMF0_STRING_MARKER
-          stream << pack_int16_network(len)
+          @stream << AMF0_STRING_MARKER
+          @stream << pack_int16_network(len)
         end
-        stream << str
+        @stream << str
       end
 
-      def write_date date, stream
-        stream << AMF0_DATE_MARKER
+      def write_date date
+        @stream << AMF0_DATE_MARKER
 
         date.utc unless date.utc?
         seconds = (date.to_f * 1000).to_i
-        stream << pack_double(seconds)
+        @stream << pack_double(seconds)
 
-        stream << pack_int16_network(0)
+        @stream << pack_int16_network(0)
       end
 
-      def write_reference index, stream
-        stream << AMF0_REFERENCE_MARKER
-        stream << pack_int16_network(index)
+      def write_reference index
+        @stream << AMF0_REFERENCE_MARKER
+        @stream << pack_int16_network(index)
       end
 
-      def write_array array, stream
+      def write_array array
         @ref_cache.add_obj array
-        stream << AMF0_STRICT_ARRAY_MARKER
-        stream << pack_word32_network(array.length)
+        @stream << AMF0_STRICT_ARRAY_MARKER
+        @stream << pack_word32_network(array.length)
         array.each do |elem|
-          serialize elem, stream
+          serialize elem
         end
       end
 
-      def write_hash hash, stream
+      def write_hash hash
         @ref_cache.add_obj hash
-        stream << AMF0_HASH_MARKER
-        stream << pack_word32_network(hash.length)
-        write_prop_list hash, stream
+        @stream << AMF0_HASH_MARKER
+        @stream << pack_word32_network(hash.length)
+        write_prop_list RocketAMF::ClassMapper.props_for_serialization(hash)
       end
 
-      def write_object obj, stream
+      def write_object obj
         @ref_cache.add_obj obj
+        props = RocketAMF::ClassMapper.props_for_serialization obj
+        write_custom_object obj, props, false
+      end
+
+      # Used to write out custom objects when writing a custom <tt>encode_amf</tt>
+      # method. The class name is taken from the given obj, and the props array
+      # is serialized as the contents of the object.
+      def write_custom_object obj, props, do_cache=true
+        @ref_cache.add_obj obj if do_cache
 
         # Is it a typed object?
         class_name = RocketAMF::ClassMapper.get_as_class_name obj
         if class_name
           class_name = class_name.encode("UTF-8").force_encoding("ASCII-8BIT") if class_name.respond_to?(:encode)
-          stream << AMF0_TYPED_OBJECT_MARKER
-          stream << pack_int16_network(class_name.bytesize)
-          stream << class_name
+          @stream << AMF0_TYPED_OBJECT_MARKER
+          @stream << pack_int16_network(class_name.bytesize)
+          @stream << class_name
         else
-          stream << AMF0_OBJECT_MARKER
+          @stream << AMF0_OBJECT_MARKER
         end
 
-        write_prop_list obj, stream
+        write_prop_list props
       end
 
       private
       include RocketAMF::Pure::WriteIOHelpers
-      def write_prop_list obj, stream
+      def write_prop_list obj
         # Write prop list
         props = RocketAMF::ClassMapper.props_for_serialization obj
         props.sort.each do |key, value| # Sort keys before writing
           key = key.encode("UTF-8").force_encoding("ASCII-8BIT") if key.respond_to?(:encode)
-          stream << pack_int16_network(key.bytesize)
-          stream << key
-          serialize value, stream
+          @stream << pack_int16_network(key.bytesize)
+          @stream << key
+          serialize value
         end
 
         # Write end
-        stream << pack_int16_network(0)
-        stream << AMF0_OBJECT_END_MARKER
+        @stream << pack_int16_network(0)
+        @stream << AMF0_OBJECT_END_MARKER
       end
     end
 
     # AMF3 implementation of serializer
     class AMF3Serializer
-      attr_reader :string_cache
+      attr_reader :string_cache, :object_cache, :trait_cache, :stream
 
       def initialize
         @string_cache = SerializerCache.new :string
         @object_cache = SerializerCache.new :object
         @trait_cache = SerializerCache.new :trait
+        @stream = ""
       end
 
       def version
         3
       end
 
-      def serialize obj, stream = ""
+      def serialize obj
         if obj.respond_to?(:encode_amf)
-          stream << obj.encode_amf(self)
+          obj.encode_amf(self)
         elsif obj.is_a?(NilClass)
-          write_null stream
+          write_null
         elsif obj.is_a?(TrueClass)
-          write_true stream
+          write_true
         elsif obj.is_a?(FalseClass)
-          write_false stream
+          write_false
         elsif obj.is_a?(Float)
-          write_float obj, stream
+          write_float obj
         elsif obj.is_a?(Integer)
-          write_integer obj, stream
+          write_integer obj
         elsif obj.is_a?(Symbol) || obj.is_a?(String)
-          write_string obj.to_s, stream
+          write_string obj.to_s
         elsif obj.is_a?(Time)
-          write_date obj, stream
+          write_date obj
         elsif obj.is_a?(StringIO)
-          write_byte_array obj, stream
+          write_byte_array obj
         elsif obj.is_a?(RocketAMF::Values::ArrayCollection)
-          write_array_collection obj, stream
+          write_array_collection obj
         elsif obj.is_a?(Array)
-          write_array obj, stream
+          write_array obj
         elsif obj.is_a?(Hash) || obj.is_a?(Object)
-          write_object obj, stream
+          write_object obj
         end
-        stream
+        @stream
       end
 
-      def write_reference index, stream
+      def write_reference index
         header = index << 1 # shift value left to leave a low bit of 0
-        stream << pack_integer(header)
+        @stream << pack_integer(header)
       end
 
-      def write_null stream
-        stream << AMF3_NULL_MARKER
+      def write_null
+        @stream << AMF3_NULL_MARKER
       end
 
-      def write_true stream
-        stream << AMF3_TRUE_MARKER
+      def write_true
+        @stream << AMF3_TRUE_MARKER
       end
 
-      def write_false stream
-        stream << AMF3_FALSE_MARKER
+      def write_false
+        @stream << AMF3_FALSE_MARKER
       end
 
-      def write_integer int, stream
+      def write_integer int
         if int < MIN_INTEGER || int > MAX_INTEGER # Check valid range for 29 bits
-          write_float int.to_f, stream
+          write_float int.to_f
         else
-          stream << AMF3_INTEGER_MARKER
-          stream << pack_integer(int)
+          @stream << AMF3_INTEGER_MARKER
+          @stream << pack_integer(int)
         end
       end
 
-      def write_float float, stream
-        stream << AMF3_DOUBLE_MARKER
-        stream << pack_double(float)
+      def write_float float
+        @stream << AMF3_DOUBLE_MARKER
+        @stream << pack_double(float)
       end
 
-      def write_string str, stream
-        stream << AMF3_STRING_MARKER
-        write_utf8_vr str, stream
+      def write_string str
+        @stream << AMF3_STRING_MARKER
+        write_utf8_vr str
       end
 
-      def write_date date, stream
-        stream << AMF3_DATE_MARKER
+      def write_date date
+        @stream << AMF3_DATE_MARKER
         if @object_cache[date] != nil
-          write_reference @object_cache[date], stream
+          write_reference @object_cache[date]
         else
           # Cache date
           @object_cache.add_obj date
@@ -220,29 +233,29 @@ module RocketAMF
           # Build AMF string
           date.utc unless date.utc?
           seconds = (date.to_f * 1000).to_i
-          stream << pack_integer(AMF3_NULL_MARKER)
-          stream << pack_double(seconds)
+          @stream << pack_integer(AMF3_NULL_MARKER)
+          @stream << pack_double(seconds)
         end
       end
 
-      def write_byte_array array, stream
-        stream << AMF3_BYTE_ARRAY_MARKER
+      def write_byte_array array
+        @stream << AMF3_BYTE_ARRAY_MARKER
         if @object_cache[array] != nil
-          write_reference @object_cache[array], stream
+          write_reference @object_cache[array]
         else
           @object_cache.add_obj array
-          write_utf8_vr array.string, stream
+          write_utf8_vr array.string
         end
       end
 
-      def write_array_collection array, stream
-        write_object array, stream, {:class_name => RocketAMF::ClassMapper.get_as_class_name(array), :members => [], :externalizable => true, :dynamic => false}
+      def write_array_collection array
+        write_custom_object array, nil, {:class_name => RocketAMF::ClassMapper.get_as_class_name(array), :members => [], :externalizable => true, :dynamic => false}
       end
 
-      def write_array array, stream
-        stream << AMF3_ARRAY_MARKER
+      def write_array array
+        @stream << AMF3_ARRAY_MARKER
         if @object_cache[array] != nil
-          write_reference @object_cache[array], stream
+          write_reference @object_cache[array]
         else
           # Cache array
           @object_cache.add_obj array
@@ -250,18 +263,18 @@ module RocketAMF
           # Build AMF string
           header = array.length << 1 # make room for a low bit of 1
           header = header | 1 # set the low bit to 1
-          stream << pack_integer(header)
-          stream << AMF3_CLOSE_DYNAMIC_ARRAY
+          @stream << pack_integer(header)
+          @stream << AMF3_CLOSE_DYNAMIC_ARRAY
           array.each do |elem|
-            serialize elem, stream
+            serialize elem
           end
         end
       end
 
-      def write_object obj, stream, traits=nil
-        stream << AMF3_OBJECT_MARKER
+      def write_object obj, traits=nil
+        @stream << AMF3_OBJECT_MARKER
         if @object_cache[obj] != nil
-          write_reference @object_cache[obj], stream
+          write_reference @object_cache[obj]
         else
           # Cache object
           @object_cache.add_obj obj
@@ -276,62 +289,81 @@ module RocketAMF
                      }
           end
 
-          # Write out traits
-          if traits[:class_name] && @trait_cache[traits] != nil
-            stream << pack_integer(@trait_cache[traits] << 2 | 0x01)
-          else
-            @trait_cache.add_obj traits if traits[:class_name]
-
-            # Write out trait header
-            header = 0x03 # Not object ref and not trait ref
-            header |= 0x02 << 2 if traits[:dynamic]
-            header |= 0x01 << 2 if traits[:externalizable]
-            header |= traits[:members].length << 4
-            stream << pack_integer(header)
-
-            # Write out class name
-            write_utf8_vr(traits[:class_name].to_s, stream)
-
-            # Write out members
-            traits[:members].each {|m| write_utf8_vr(m, stream)}
-          end
-
-          # If externalizable, take externalized data shortcut
-          if traits[:externalizable]
-            serialize obj.externalized_data, stream
-            return
-          end
-
-          # Write out sealed properties
+          # Write object
           props = RocketAMF::ClassMapper.props_for_serialization obj
-          traits[:members].each do |m|
-            serialize props[m], stream
-            props.delete(m)
+          write_custom_object obj, props, traits, false
+        end
+      end
+
+      # Used to write out custom objects when writing a custom <tt>encode_amf</tt>
+      # method. The class name is taken from the given obj, and the props array
+      # is serialized as the contents of the object.
+      def write_custom_object obj, props, traits, do_cache=true
+        if do_cache
+          @stream << AMF3_OBJECT_MARKER
+          if @object_cache[obj] != nil
+            write_reference @object_cache[obj]
+            return
+          else
+            # Cache object
+            @object_cache.add_obj obj
+          end
+        end
+
+        # Write out traits
+        if traits[:class_name] && @trait_cache[traits] != nil
+          @stream << pack_integer(@trait_cache[traits] << 2 | 0x01)
+        else
+          @trait_cache.add_obj traits if traits[:class_name]
+
+          # Write out trait header
+          header = 0x03 # Not object ref and not trait ref
+          header |= 0x02 << 2 if traits[:dynamic]
+          header |= 0x01 << 2 if traits[:externalizable]
+          header |= traits[:members].length << 4
+          @stream << pack_integer(header)
+
+          # Write out class name
+          write_utf8_vr(traits[:class_name].to_s)
+
+          # Write out members
+          traits[:members].each {|m| write_utf8_vr(m)}
+        end
+
+        # If externalizable, take externalized data shortcut
+        if traits[:externalizable]
+          serialize obj.externalized_data
+          return
+        end
+
+        # Write out sealed properties
+        traits[:members].each do |m|
+          serialize props[m]
+          props.delete(m)
+        end
+
+        if traits[:dynamic]
+          # Write out dynamic properties
+          props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
+            write_utf8_vr key.to_s
+            serialize val
           end
 
-          if traits[:dynamic]
-            # Write out dynamic properties
-            props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
-              write_utf8_vr key.to_s, stream
-              serialize val, stream
-            end
-
-            # Write close
-            stream << AMF3_CLOSE_DYNAMIC_OBJECT
-          end
+          # Write close
+          @stream << AMF3_CLOSE_DYNAMIC_OBJECT
         end
       end
 
       private
       include RocketAMF::Pure::WriteIOHelpers
 
-      def write_utf8_vr str, stream
+      def write_utf8_vr str
         str = str.encode("UTF-8").force_encoding("ASCII-8BIT") if str.respond_to?(:encode)
 
         if str == ''
-          stream << AMF3_EMPTY_STRING
+          @stream << AMF3_EMPTY_STRING
         elsif @string_cache[str] != nil
-          write_reference @string_cache[str], stream
+          write_reference @string_cache[str]
         else
           # Cache string
           @string_cache.add_obj str
@@ -339,8 +371,8 @@ module RocketAMF
           # Build AMF string
           header = str.bytesize << 1 # make room for a low bit of 1
           header = header | 1 # set the low bit to 1
-          stream << pack_integer(header)
-          stream << str
+          @stream << pack_integer(header)
+          @stream << str
         end
       end
     end

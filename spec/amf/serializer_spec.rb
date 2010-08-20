@@ -281,16 +281,12 @@ describe "when serializing" do
         obj1 = RubyClass.new
         obj1.foo = "foo"
         def obj1.encode_amf serializer
-          stream = ""
-          serializer.write_object(self, stream, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
-          stream
+          serializer.write_object(self, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
         end
         obj2 = RubyClass.new
         obj2.foo = "bar"
         def obj2.encode_amf serializer
-          stream = ""
-          serializer.write_object(self, stream, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
-          stream
+          serializer.write_object(self, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
         end
         input = [obj1, obj2]
 
