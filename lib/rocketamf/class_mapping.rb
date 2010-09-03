@@ -95,7 +95,7 @@ module RocketAMF
       #
       # Example:
       #
-      #   m.map :as 'com.example.Date', :ruby => 'Example::Date'
+      #   m.map :as => 'com.example.Date', :ruby => 'Example::Date'
       def map params
         [:as, :ruby].each {|k| params[k] = params[k].to_s} # Convert params to strings
         @as_mappings[params[:as]] = params[:ruby]
