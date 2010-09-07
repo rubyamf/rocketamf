@@ -16,10 +16,10 @@ module RocketAMF
       end
 
       def serialize obj
-        if obj.respond_to?(:encode_amf)
-          obj.encode_amf(self)
-        elsif @ref_cache[obj] != nil
+        if @ref_cache[obj] != nil
           write_reference @ref_cache[obj]
+        elsif obj.respond_to?(:encode_amf)
+          obj.encode_amf(self)
         elsif obj.is_a?(NilClass)
           write_null
         elsif obj.is_a?(TrueClass) || obj.is_a?(FalseClass)
