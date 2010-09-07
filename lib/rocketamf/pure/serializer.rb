@@ -70,11 +70,11 @@ module RocketAMF
       def write_date date
         @stream << AMF0_DATE_MARKER
 
-        date.utc unless date.utc?
-        seconds = (date.to_f * 1000).to_i
-        @stream << pack_double(seconds)
+        date = date.getutc # Dup and convert to UTC
+        milli = (date.to_f * 1000).to_i
+        @stream << pack_double(milli)
 
-        @stream << pack_int16_network(0)
+        @stream << pack_int16_network(0) # Time zone
       end
 
       def write_reference index
@@ -231,10 +231,10 @@ module RocketAMF
           @object_cache.add_obj date
 
           # Build AMF string
-          date.utc unless date.utc?
-          seconds = (date.to_f * 1000).to_i
-          @stream << pack_integer(AMF3_NULL_MARKER)
-          @stream << pack_double(seconds)
+          date = date.getutc # Dup and convert to UTC
+          milli = (date.to_f * 1000).to_i
+          @stream << AMF3_NULL_MARKER
+          @stream << pack_double(milli)
         end
       end
 
