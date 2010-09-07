@@ -129,6 +129,13 @@ describe "when serializing" do
         output.should == expected
       end
 
+      it "should serialize floats" do
+        expected = object_fixture("amf3-float.bin")
+        input = 3.5
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
       it "should serialize BigNums" do
         expected = object_fixture("amf3-bigNum.bin")
         input = 2**1000
