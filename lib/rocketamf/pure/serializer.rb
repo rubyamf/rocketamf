@@ -98,17 +98,10 @@ module RocketAMF
         write_prop_list RocketAMF::ClassMapper.props_for_serialization(hash)
       end
 
-      def write_object obj
+      def write_object obj, props=nil
         @ref_cache.add_obj obj
-        props = RocketAMF::ClassMapper.props_for_serialization obj
-        write_custom_object obj, props, false
-      end
 
-      # Used to write out custom objects when writing a custom <tt>encode_amf</tt>
-      # method. The class name is taken from the given obj, and the props array
-      # is serialized as the contents of the object.
-      def write_custom_object obj, props, do_cache=true
-        @ref_cache.add_obj obj if do_cache
+        props = RocketAMF::ClassMapper.props_for_serialization obj if props.nil?
 
         # Is it a typed object?
         class_name = RocketAMF::ClassMapper.get_as_class_name obj
@@ -249,7 +242,7 @@ module RocketAMF
       end
 
       def write_array_collection array
-        write_custom_object array, nil, {:class_name => RocketAMF::ClassMapper.get_as_class_name(array), :members => [], :externalizable => true, :dynamic => false}
+        write_object array, nil, {:class_name => RocketAMF::ClassMapper.get_as_class_name(array), :members => [], :externalizable => true, :dynamic => false}
       end
 
       def write_array array
@@ -271,43 +264,24 @@ module RocketAMF
         end
       end
 
-      def write_object obj, traits=nil
+      def write_object obj, props=nil, traits=nil
         @stream << AMF3_OBJECT_MARKER
+
+        # Caching...
         if @object_cache[obj] != nil
           write_reference @object_cache[obj]
-        else
-          # Cache object
-          @object_cache.add_obj obj
-
-          # Calculate traits if not given
-          if traits.nil?
-            traits = {
-                      :class_name => RocketAMF::ClassMapper.get_as_class_name(obj),
-                      :members => [],
-                      :externalizable => false,
-                      :dynamic => true
-                     }
-          end
-
-          # Write object
-          props = RocketAMF::ClassMapper.props_for_serialization obj
-          write_custom_object obj, props, traits, false
+          return
         end
-      end
+        @object_cache.add_obj obj
 
-      # Used to write out custom objects when writing a custom <tt>encode_amf</tt>
-      # method. The class name is taken from the given obj, and the props array
-      # is serialized as the contents of the object.
-      def write_custom_object obj, props, traits, do_cache=true
-        if do_cache
-          @stream << AMF3_OBJECT_MARKER
-          if @object_cache[obj] != nil
-            write_reference @object_cache[obj]
-            return
-          else
-            # Cache object
-            @object_cache.add_obj obj
-          end
+        # Calculate traits if not given
+        if traits.nil?
+          traits = {
+                    :class_name => RocketAMF::ClassMapper.get_as_class_name(obj),
+                    :members => [],
+                    :externalizable => false,
+                    :dynamic => true
+                   }
         end
 
         # Write out traits
@@ -336,12 +310,16 @@ module RocketAMF
           return
         end
 
+        # Extract properties if not given
+        props = RocketAMF::ClassMapper.props_for_serialization(obj) if props.nil?
+
         # Write out sealed properties
         traits[:members].each do |m|
           serialize props[m]
           props.delete(m)
         end
 
+        # Write out dynamic properties
         if traits[:dynamic]
           # Write out dynamic properties
           props.sort.each do |key, val| # Sort props until Ruby 1.9 becomes common
