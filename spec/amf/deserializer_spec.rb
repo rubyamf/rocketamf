@@ -1,6 +1,6 @@
 # encoding: UTF-8
 
-require File.dirname(__FILE__) + '/../spec_helper.rb'
+require "spec_helper.rb"
 
 describe "when deserializing" do
   before :each do
@@ -54,17 +54,17 @@ describe "when deserializing" do
     it "should deserialize hashes" do
       input = object_fixture('amf0-hash.bin')
       output = RocketAMF.deserialize(input, 0)
-      output.should == {:a => 'b', :c => 'd'}
+      output.should == {'a' => 'b', 'c' => 'd'}
     end
 
     it "should deserialize arrays from flash player" do
-      # Even Array is serialized as a "hash", so check that deserializer converts to array
+      # Even Array is serialized as a "hash"
       input = object_fixture('amf0-ecma-ordinal-array.bin')
       output = RocketAMF.deserialize(input, 0)
-      output.should == ['a', 'b', 'c', 'd']
+      output.should == {'0' => 'a', '1' => 'b', '2' => 'c', '3' => 'd'}
     end
 
-    it "should serialize strict arrays" do
+    it "should deserialize strict arrays" do
       input = object_fixture('amf0-strict-array.bin')
       output = RocketAMF.deserialize(input, 0)
       output.should == ['a', 'b', 'c', 'd']

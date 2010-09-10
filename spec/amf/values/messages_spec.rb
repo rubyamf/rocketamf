@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + '/../../spec_helper.rb'
+require "spec_helper.rb"
 
 describe RocketAMF::Values::AbstractMessage do
   before :each do

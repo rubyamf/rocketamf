@@ -1,7 +1,6 @@
 # encoding: UTF-8
 
-require File.dirname(__FILE__) + '/../spec_helper.rb'
-
+require "spec_helper.rb"
 require 'rexml/document'
 
 describe "when serializing" do
@@ -167,14 +166,14 @@ describe "when serializing" do
     describe "objects" do
       it "should serialize an unmapped object as a dynamic anonymous object" do
         class NonMappedObject
-          attr_accessor :property_one
-          attr_accessor :property_two
-          attr_accessor :nil_property
-          attr_writer :read_only_prop
-
           def another_public_property
             'a_public_value'
           end
+
+          attr_accessor :nil_property
+          attr_accessor :property_one
+          attr_accessor :property_two
+          attr_writer :read_only_prop
 
           def method_with_arg arg='foo'
             arg

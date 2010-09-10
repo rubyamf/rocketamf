@@ -83,7 +83,7 @@ end
 #   run HelloWorldApp.new
 module RocketAMF
   begin
-    raise LoadError, 'C extensions not implemented'
+    require 'rocketamf/ext'
   rescue LoadError
     require 'rocketamf/pure'
   end

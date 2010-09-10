@@ -26,8 +26,9 @@ spec = Gem::Specification.new do |s|
   s.version = '0.2.1'
   s.summary = 'Fast AMF serializer/deserializer with remoting request/response wrappers to simplify integration'
 
-  s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.rb', 'spec/**/*.bin', 'spec/spec.opts']
+  s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.{rb,bin,opts}', 'ext/*.{c,h,rb}']
   s.require_path = 'lib'
+  s.extensions   = ["ext/extconf.rb"]
   s.test_files   = Dir[*['spec/**/*_spec.rb']]
 
   s.has_rdoc         = true

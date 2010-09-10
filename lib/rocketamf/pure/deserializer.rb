@@ -87,37 +87,13 @@ module RocketAMF
 
       def read_hash source
         len = read_word32_network(source) # Read and ignore length
-
-        # Read first pair
-        key = read_string source
-        type = read_int8 source
-        return [] if type == AMF0_OBJECT_END_MARKER
-
-        # We need to figure out whether this is a real hash, or whether some stupid serializer gave up
-        if key.to_i.to_s == key
-          # Array
-          obj = []
-          @ref_cache << obj
-
-          obj[key.to_i] = deserialize(source, type)
-          while true
-            key = read_string source
-            type = read_int8 source
-            break if type == AMF0_OBJECT_END_MARKER
-            obj[key.to_i] = deserialize(source, type)
-          end
-        else
-          # Hash
-          obj = {}
-          @ref_cache << obj
-
-          obj[key.to_sym] = deserialize(source, type)
-          while true
-            key = read_string source
-            type = read_int8 source
-            break if type == AMF0_OBJECT_END_MARKER
-            obj[key.to_sym] = deserialize(source, type)
-          end
+        obj = {}
+        @ref_cache << obj
+        while true
+          key = read_string source
+          type = read_int8 source
+          break if type == AMF0_OBJECT_END_MARKER
+          obj[key] = deserialize(source, type)
         end
         obj
       end
@@ -150,7 +126,7 @@ module RocketAMF
         props = read_object source, false
 
         # Populate object
-        RocketAMF::ClassMapper.populate_ruby_obj obj, props, {}
+        RocketAMF::ClassMapper.populate_ruby_obj obj, props
         return obj
       end
     end

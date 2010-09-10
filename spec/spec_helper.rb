@@ -7,6 +7,7 @@ rescue LoadError
 end
 require 'spec/autorun'
 
+$:.unshift(File.dirname(__FILE__) + '/../ext')
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'rocketamf'
 
@@ -29,3 +30,11 @@ end
 # Helper classes
 class RubyClass; attr_accessor :baz, :foo; end;
 class OtherClass; attr_accessor :bar, :foo; end;
+class ClassMappingTest
+  attr_accessor :prop_a
+  attr_accessor :prop_b
+end
+class ClassMappingTest2 < ClassMappingTest
+  attr_accessor :prop_c
+end
+module ANamespace; class TestRubyClass; end; end
