@@ -12,7 +12,7 @@ module RocketAMF
 
         # Initialize
         @amf_version = 0
-        @headers = []
+        @headers = {}
         @messages = []
 
         # Read AMF version
@@ -26,7 +26,7 @@ module RocketAMF
           must_understand = read_int8(stream) != 0
           length = read_word32_network stream
           data = RocketAMF.deserialize stream
-          @headers << RocketAMF::Header.new(name, must_understand, data)
+          @headers[name] << RocketAMF::Header.new(name, must_understand, data)
         end
 
         # Read in messages
@@ -57,7 +57,7 @@ module RocketAMF
 
         # Write headers
         stream << pack_int16_network(@headers.length) # Header count
-        @headers.each do |h|
+        @headers.each_value do |h|
           name_str = h.name
           name_str.encode!("UTF-8").force_encoding("ASCII-8BIT") if name_str.respond_to?(:encode)
           stream << pack_int16_network(name_str.bytesize)

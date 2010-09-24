@@ -5,7 +5,7 @@ module RocketAMF
 
     def initialize props={}
       @amf_version = props[:amf_version] || 0
-      @headers = props[:headers] || []
+      @headers = props[:headers] || {}
       @messages = props[:messages] || []
     end
 
