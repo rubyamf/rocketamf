@@ -448,10 +448,10 @@ static VALUE des3_read_array(AMF_DESERIALIZER *des) {
         VALUE obj;
         VALUE key = des3_read_string(des);
         if(key == Qnil) rb_raise(rb_eRangeError, "key is Qnil");
-        if(RARRAY_LEN(key) != 0) {
+        if(RSTRING_LEN(key) != 0) {
             obj = rb_hash_new();
             rb_ary_push(des->obj_cache, obj);
-            while(RARRAY_LEN(key) != 0) {
+            while(RSTRING_LEN(key) != 0) {
                 rb_hash_aset(obj, key, des3_deserialize_internal(des));
                 key = des3_read_string(des);
             }
