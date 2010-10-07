@@ -31,10 +31,10 @@ static VALUE des3_deserialize_internal(AMF_DESERIALIZER *des);
 
 static void des_mark(AMF_DESERIALIZER *des) {
     if(!des) return;
-    rb_mark(des->obj_cache);
-    if(des->str_cache) rb_mark(des->str_cache);
-    if(des->trait_cache) rb_mark(des->trait_cache);
-    rb_mark(des->src);
+    rb_gc_mark(des->obj_cache);
+    if(des->str_cache) rb_gc_mark(des->str_cache);
+    if(des->trait_cache) rb_gc_mark(des->trait_cache);
+    rb_gc_mark(des->src);
 }
 
 static void des_free(AMF_DESERIALIZER *des) {
