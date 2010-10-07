@@ -1,6 +1,7 @@
 $:.unshift(File.dirname(__FILE__)) unless $:.include?(File.dirname(__FILE__)) || $:.include?(File.expand_path(File.dirname(__FILE__)))
 $:.unshift "#{File.expand_path(File.dirname(__FILE__))}/rocketamf/"
 
+require "date"
 require 'rocketamf/class_mapping'
 require 'rocketamf/constants'
 require 'rocketamf/remoting'

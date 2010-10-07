@@ -43,11 +43,21 @@ describe "when serializing" do
       output.should == object_fixture('amf0-ref-test.bin')
     end
 
-    it "should serialize dates" do
+    it "should serialize Time objects" do
       output = RocketAMF.serialize(Time.utc(2003, 2, 13, 5), 0)
+      output.should == object_fixture('amf0-time.bin')
+    end
+
+    it "should serialize Date objects" do
+      output = RocketAMF.serialize(Date.civil(2020, 5, 30), 0)
       output.should == object_fixture('amf0-date.bin')
     end
-  
+
+    it "should serialize DateTime objects" do
+      output = RocketAMF.serialize(DateTime.civil(2003, 2, 13, 5), 0)
+      output.should == object_fixture('amf0-time.bin')
+    end
+
     it "should serialize hashes" do
       output = RocketAMF.serialize({:a => 'b', 'c' => 'd'}, 0)
       output.should == object_fixture('amf0-hash.bin')
@@ -155,9 +165,23 @@ describe "when serializing" do
         output.should == expected
       end
 
-      it "should serialize Times" do
+      it "should serialize Time objects" do
         expected = object_fixture("amf3-date.bin")
         input = Time.utc 1970, 1, 1, 0
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
+      it "should serialize Date objects" do
+        expected = object_fixture("amf3-date.bin")
+        input = Date.civil 1970, 1, 1, 0
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
+      it "should serialize DateTime objects" do
+        expected = object_fixture("amf3-date.bin")
+        input = DateTime.civil 1970, 1, 1, 0
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end

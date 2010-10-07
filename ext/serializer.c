@@ -9,6 +9,8 @@
 extern VALUE mRocketAMF;
 extern VALUE mRocketAMFExt;
 extern VALUE cStringIO;
+extern VALUE cDate;
+extern VALUE cDateTime;
 extern VALUE sym_class_name;
 extern VALUE sym_members;
 extern VALUE sym_externalizable;
@@ -324,6 +326,18 @@ static VALUE ser0_write_time(VALUE self, VALUE time) {
     ser_write_uint16(ser, 0); // Time zone
 }
 
+static VALUE ser0_write_date(VALUE self, VALUE date) {
+    AMF_SERIALIZER *ser;
+    Data_Get_Struct(self, AMF_SERIALIZER, ser);
+
+    ser_write_byte(ser, AMF0_DATE_MARKER);
+
+    // Write time
+    double tmp_num = rb_str_to_dbl(rb_funcall(date, rb_intern("strftime"), 1, rb_str_new2("%Q")), Qfalse);
+    ser_write_double(ser, tmp_num);
+    ser_write_uint16(ser, 0); // Time zone
+}
+
 /*
  * call-seq:
  *   ser.serialize(obj) =>str
@@ -367,6 +381,8 @@ static VALUE ser0_serialize(VALUE self, VALUE obj) {
         ser0_write_array(self, obj);
     } else if(klass == rb_cTime) {
         ser0_write_time(self, obj);
+    } else if(klass == cDate || klass == cDateTime) {
+        ser0_write_date(self, obj);
     } else if(type == T_BIGNUM) {
         ser_write_byte(ser, AMF0_NUMBER_MARKER);
         ser_write_double(ser, rb_big2dbl(obj));
@@ -661,16 +677,39 @@ static VALUE ser3_write_time(VALUE self, VALUE time) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
         return;
     } else {
-        ser_write_byte(ser, AMF3_NULL_MARKER);
         st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
         ser->obj_index++;
     }
 
     // Write time
+    ser_write_byte(ser, AMF3_NULL_MARKER); // Ref header
     time = rb_obj_dup(time);
     rb_funcall(time, id_utc, 0);
     long tmp_num = NUM2DBL(rb_funcall(time, id_to_f, 0)) * 1000;
     ser_write_double(ser, (double)tmp_num);
+}
+
+static VALUE ser3_write_date(VALUE self, VALUE date) {
+    AMF_SERIALIZER *ser;
+    Data_Get_Struct(self, AMF_SERIALIZER, ser);
+
+    ser_write_byte(ser, AMF3_DATE_MARKER);
+
+    // Write object ref, or cache it
+    VALUE obj_id = rb_obj_id(date);
+    VALUE obj_index;
+    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+        ser_write_int(ser, FIX2INT(obj_index) << 1);
+        return;
+    } else {
+        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        ser->obj_index++;
+    }
+
+    // Write time
+    ser_write_byte(ser, AMF3_NULL_MARKER); // Ref header
+    double tmp_num = rb_str_to_dbl(rb_funcall(date, rb_intern("strftime"), 1, rb_str_new2("%Q")), Qfalse);
+    ser_write_double(ser, tmp_num);
 }
 
 static VALUE ser3_write_byte_array(VALUE self, VALUE ba) {
@@ -738,6 +777,8 @@ static VALUE ser3_serialize(VALUE self, VALUE obj) {
         ser3_write_object0(self, obj, Qnil, Qnil);
     } else if(klass == rb_cTime) {
         ser3_write_time(self, obj);
+    } else if(klass == cDate || klass == cDateTime) {
+        ser3_write_date(self, obj);
     } else if(klass == cStringIO) {
         ser3_write_byte_array(self, obj);
     } else if(type == T_BIGNUM) {

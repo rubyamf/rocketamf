@@ -3,6 +3,8 @@
 VALUE mRocketAMF;
 VALUE mRocketAMFExt;
 VALUE cStringIO;
+VALUE cDate;
+VALUE cDateTime;
 VALUE sym_class_name;
 VALUE sym_members;
 VALUE sym_externalizable;
@@ -23,6 +25,8 @@ void Init_rocketamf_ext() {
 
     // Get refs to commonly used symbols and ids
     cStringIO = rb_const_get(rb_cObject, rb_intern("StringIO"));
+    cDate = rb_const_get(rb_cObject, rb_intern("Date"));
+    cDateTime = rb_const_get(rb_cObject, rb_intern("DateTime"));
     sym_class_name = ID2SYM(rb_intern("class_name"));
     sym_members = ID2SYM(rb_intern("members"));
     sym_externalizable = ID2SYM(rb_intern("externalizable"));

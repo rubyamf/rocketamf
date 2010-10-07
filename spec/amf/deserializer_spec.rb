@@ -71,7 +71,7 @@ describe "when deserializing" do
     end
 
     it "should deserialize dates" do
-      input = object_fixture('amf0-date.bin')
+      input = object_fixture('amf0-time.bin')
       output = RocketAMF.deserialize(input, 0)
       output.should == Time.utc(2003, 2, 13, 5)
     end
