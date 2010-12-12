@@ -8,6 +8,13 @@ describe "when deserializing" do
   end
 
   describe "AMF0" do
+    it "should update source pos if source is a StringIO object" do
+      input = StringIO.new(object_fixture('amf0-number.bin'))
+      input.pos.should == 0
+      output = RocketAMF.deserialize(input, 0)
+      input.pos.should == 9
+    end
+
     it "should deserialize numbers" do
       input = object_fixture('amf0-number.bin')
       output = RocketAMF.deserialize(input, 0)
@@ -103,6 +110,13 @@ describe "when deserializing" do
   end
 
   describe "AMF3" do
+    it "should update source pos if source is a StringIO object" do
+      input = StringIO.new(object_fixture('amf3-null.bin'))
+      input.pos.should == 0
+      output = RocketAMF.deserialize(input, 3)
+      input.pos.should == 1
+    end
+
     describe "simple messages" do
       it "should deserialize a null" do
         input = object_fixture("amf3-null.bin")

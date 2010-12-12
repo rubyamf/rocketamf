@@ -180,6 +180,15 @@ void des_set_src(AMF_DESERIALIZER *des, VALUE src) {
 }
 
 /*
+ * Update pos on source if it's a StringIO object
+ */
+static void des_update_src_pos(AMF_DESERIALIZER *des) {
+    if(CLASS_OF(des->src) == cStringIO) {
+        rb_funcall(des->src, rb_intern("pos="), 1, LONG2NUM(des->pos));
+    }
+}
+
+/*
  * Create AMF3 deserializer and copy source data over to it, before calling
  * AMF3 internal deserialize function
  */
@@ -350,7 +359,9 @@ static VALUE des0_deserialize_rb(VALUE self, VALUE src) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
     des_set_src(des, src);
-    return des0_deserialize(des, des_read_byte(des));
+    VALUE ret = des0_deserialize(des, des_read_byte(des));
+    des_update_src_pos(des);
+    return ret;
 }
 
 static VALUE des3_read_string(AMF_DESERIALIZER *des) {
@@ -626,7 +637,9 @@ static VALUE des3_deserialize_rb(VALUE self, VALUE src) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
     des_set_src(des, src);
-    return des3_deserialize(des);
+    VALUE ret = des3_deserialize(des);
+    des_update_src_pos(des);
+    return ret;
 }
 
 void Init_rocket_amf_deserializer() {
