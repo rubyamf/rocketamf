@@ -24,9 +24,7 @@ ID id_utc;
 ID id_to_f;
 
 typedef struct {
-    char* stream;
-    long len;
-    long size;
+    VALUE stream;
     int depth;
     st_table* str_cache;
     long str_index;
@@ -44,30 +42,21 @@ typedef struct {
 static VALUE ser0_serialize(VALUE self, VALUE obj);
 static VALUE ser3_serialize(VALUE self, VALUE obj);
 
+static void ser_mark(AMF_SERIALIZER *ser) {
+    if(!ser) return;
+    rb_gc_mark(ser->stream);
+}
+
 static void ser_free(AMF_SERIALIZER *ser) {
     if(ser->str_cache) st_free_table(ser->str_cache);
     if(ser->trait_cache) st_free_table(ser->trait_cache);
     st_free_table(ser->obj_cache);
-    xfree(ser->stream);
     xfree(ser);
-}
-
-static void ser_write(AMF_SERIALIZER *ser, const char* str, long len) {
-    long needed = ser->len + len + 1;
-    if(needed > ser->size) {
-        // Keep multiplying size by 2 until we can contain it plus 1 (for null)
-        while(needed > ser->size) ser->size *= 2;
-        if(ser->size > MAX_STREAM_LENGTH) rb_raise(rb_eRangeError, "Stream larger than MAX_STREAM_LENGTH");
-        REALLOC_N(ser->stream, char, ser->size);
-    }
-    memcpy(ser->stream + ser->len, str, len);
-    ser->len += len;
-    ser->stream[ser->len] = '\0';
 }
 
 static void ser_write_byte(AMF_SERIALIZER *ser, char byte) {
     char bytes[2] = {byte, '\0'};
-    ser_write(ser, bytes, 1);
+    rb_str_buf_cat(ser->stream, bytes, 1);
 }
 
 static void ser_write_int(AMF_SERIALIZER *ser, int num) {
@@ -97,19 +86,19 @@ static void ser_write_int(AMF_SERIALIZER *ser, int num) {
         rb_raise(rb_eRangeError, "int %d out of range", num);
     }
 
-    ser_write(ser, tmp, tmp_len);
+    rb_str_buf_cat(ser->stream, tmp, tmp_len);
 }
 
 static void ser_write_uint16(AMF_SERIALIZER *ser, long num) {
     if(num > 0xffff || num < 0) rb_raise(rb_eRangeError, "int %ld out of range", num);
     char tmp[2] = {(num >> 8) & 0xff, num & 0xff};
-    ser_write(ser, tmp, 2);
+    rb_str_buf_cat(ser->stream, tmp, 2);
 }
 
 static void ser_write_uint32(AMF_SERIALIZER *ser, long num) {
     if(num > 0xffffffff || num < 0) rb_raise(rb_eRangeError, "int %ld out of range", num);
 	char tmp[4] = {(num >> 24) & 0xff, (num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff};
-	ser_write(ser, tmp, 4);
+	rb_str_buf_cat(ser->stream, tmp, 4);
 }
 
 static void ser_write_double(AMF_SERIALIZER *ser, double num) {
@@ -121,10 +110,10 @@ static void ser_write_double(AMF_SERIALIZER *ser, double num) {
 	d.dval = num;
 
 #ifdef WORDS_BIGENDIAN
-    ser_write(ser, number, 8);
+    rb_str_buf_cat(ser->stream, number, 8);
 #else
     char netnum[8] = {number[7],number[6],number[5],number[4],number[3],number[2],number[1],number[0]};
-    ser_write(ser, netnum, 8);
+    rb_str_buf_cat(ser->stream, netnum, 8);
 #endif
 }
 
@@ -135,12 +124,10 @@ static void ser_write_double(AMF_SERIALIZER *ser, double num) {
 static VALUE ser0_alloc(VALUE klass) {
     AMF_SERIALIZER *ser = ALLOC(AMF_SERIALIZER);
     memset(ser, 0, sizeof(AMF_SERIALIZER));
-    VALUE self = Data_Wrap_Struct(klass, NULL, ser_free, ser);
+    VALUE self = Data_Wrap_Struct(klass, ser_mark, ser_free, ser);
 
     // Initialize stream
-    ser->stream = ALLOC_N(char, INITIAL_STREAM_LENGTH);
-    ser->len = 0;
-    ser->size = INITIAL_STREAM_LENGTH;
+    ser->stream = rb_str_buf_new(0);
 
     // Initialize caches
     ser->obj_cache = st_init_numtable();
@@ -220,7 +207,7 @@ static void ser0_write_string(AMF_SERIALIZER *ser, VALUE obj, VALUE write_marker
         if(write_marker == Qtrue) ser_write_byte(ser, AMF0_STRING_MARKER);
         ser_write_uint16(ser, len);
     }
-    ser_write(ser, str, len);
+    rb_str_buf_cat(ser->stream, str, len);
 }
 
 /*
@@ -394,7 +381,7 @@ static VALUE ser0_serialize(VALUE self, VALUE obj) {
 
     if(ser->depth == 0) {
         ser->depth = -1;
-        return rb_str_new(ser->stream, ser->len);
+        return ser->stream;
     } else {
         return Qnil;
     }
@@ -403,12 +390,10 @@ static VALUE ser0_serialize(VALUE self, VALUE obj) {
 static VALUE ser3_alloc(VALUE klass) {
     AMF_SERIALIZER *ser = ALLOC(AMF_SERIALIZER);
     memset(ser, 0, sizeof(AMF_SERIALIZER));
-    VALUE self = Data_Wrap_Struct(klass, NULL, ser_free, ser);
+    VALUE self = Data_Wrap_Struct(klass, ser_mark, ser_free, ser);
 
     // Initialize stream
-    ser->stream = ALLOC_N(char, INITIAL_STREAM_LENGTH);
-    ser->len = 0;
-    ser->size = INITIAL_STREAM_LENGTH;
+    ser->stream = rb_str_buf_new(0);
 
     // Initialize caches
     ser->str_cache = st_init_strtable();
@@ -508,7 +493,7 @@ static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj) {
         ser->str_index++;
 
         ser_write_int(ser, ((int)len) << 1 | 1);
-        ser_write(ser, str, len);
+        rb_str_buf_cat(ser->stream, str, len);
     }
 }
 
@@ -792,7 +777,7 @@ static VALUE ser3_serialize(VALUE self, VALUE obj) {
 
     if(ser->depth == 0) {
         ser->depth = -1;
-        return rb_str_new(ser->stream, ser->len);
+        return ser->stream;
     } else {
         return Qnil;
     }
