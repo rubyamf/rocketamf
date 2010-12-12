@@ -1,9 +1,7 @@
-#include <ruby.h>
-#ifdef HAVE_RB_STR_ENCODE
-#include <ruby/encoding.h>
-#endif
+#include "deserializer.h"
 #include "constants.h"
-#include "utility.h"
+
+#define DES_BOUNDS_CHECK(des, i) if(des->pos + (i) > des->size) rb_raise(rb_eRangeError, "reading %ld bytes is beyond end of source: %ld (pos), %ld (size)", (long)(i), des->pos, des->size);
 
 extern VALUE mRocketAMF;
 extern VALUE mRocketAMFExt;
@@ -16,76 +14,66 @@ extern VALUE sym_dynamic;
 ID id_get_ruby_obj;
 ID id_populate_ruby_obj;
 
-typedef struct {
-    VALUE src;
-    char* stream;
-    long pos;
-    long size;
-    VALUE obj_cache;
-    VALUE str_cache;
-    VALUE trait_cache;
-} AMF_DESERIALIZER;
-
-static VALUE des0_deserialize_type(AMF_DESERIALIZER *des, char type);
-static VALUE des3_deserialize_internal(AMF_DESERIALIZER *des);
-
-static void des_mark(AMF_DESERIALIZER *des) {
-    if(!des) return;
-    rb_gc_mark(des->obj_cache);
-    if(des->str_cache) rb_gc_mark(des->str_cache);
-    if(des->trait_cache) rb_gc_mark(des->trait_cache);
-    rb_gc_mark(des->src);
+/*
+ * Allocate a new deserializer struct and zero it out
+ */
+AMF_DESERIALIZER* des_new() {
+    AMF_DESERIALIZER *des = ALLOC(AMF_DESERIALIZER);
+    memset(des, 0, sizeof(AMF_DESERIALIZER));
+    return des;
 }
 
-static void des_free(AMF_DESERIALIZER *des) {
+/*
+ * Mark the reader and its source. If caches are populated mark them as well.
+ */
+static void des_mark(AMF_DESERIALIZER *des) {
+    if(!des) return;
+    rb_gc_mark(des->src);
+    if(des->obj_cache) rb_gc_mark(des->obj_cache);
+    if(des->str_cache) rb_gc_mark(des->str_cache);
+    if(des->trait_cache) rb_gc_mark(des->trait_cache);
+}
+
+/*
+ * Free the reader. Don't need to free anything but the struct because we didn't
+ * alloc anything - source is from the ruby source object.
+ */
+void des_free(AMF_DESERIALIZER *des) {
     xfree(des);
 }
 
 /*
- * Set the source of the deserializer, whether it's a StringIO object or a
- * string, copying over position if available
+ * Create new struct and wrap with class
  */
-static void des_set_src(AMF_DESERIALIZER *des, VALUE src) {
-    des->src = src;
-    VALUE klass = CLASS_OF(src);
-    if(klass == cStringIO) {
-        VALUE str = rb_funcall(src, rb_intern("string"), 0);
-        des->stream = RSTRING_PTR(str);
-        des->pos = NUM2LONG(rb_funcall(src, rb_intern("pos"), 0));
-        des->size = RSTRING_LEN(str);
-    } else if(klass == rb_cString) {
-        des->stream = RSTRING_PTR(src);
-        des->pos = 0;
-        des->size = RSTRING_LEN(src);
-    } else {
-        rb_raise(rb_eArgError, "Invalid source type to deserialize from");
-    }
-    if(des->pos >= des->size) rb_raise(rb_eRangeError, "already at the end of the source");
+static VALUE des_alloc(VALUE klass) {
+    return Data_Wrap_Struct(klass, des_mark, des_free, des_new());
 }
 
-static char des_read_byte(AMF_DESERIALIZER *des) {
-    if(des->pos > des->size) rb_raise(rb_eRangeError, "byte reading beyond end of source: %ld (pos), %ld (size)", des->pos, des->size);
+char des_read_byte(AMF_DESERIALIZER *des) {
+    DES_BOUNDS_CHECK(des, 1);
     des->pos++;
     return des->stream[des->pos-1];
 }
 
-static int des_read_uint16(AMF_DESERIALIZER *des) {
-    if(des->pos + 2 > des->size) rb_raise(rb_eRangeError, "uint16 reading beyond end of source: %ld (pos), %ld (size)", des->pos, des->size);
-	const unsigned char *str = des->stream + des->pos;
-	des->pos += 2;
-	return ((str[0] << 8) | str[1]);
+int des_read_uint16(AMF_DESERIALIZER *des) {
+    DES_BOUNDS_CHECK(des, 2);
+    const unsigned char *str = des->stream + des->pos;
+    des->pos += 2;
+    return ((str[0] << 8) | str[1]);
 }
 
-static long des_read_uint32(AMF_DESERIALIZER *des) {
-    if(des->pos + 4 > des->size) rb_raise(rb_eRangeError, "uint32 reading beyond end of source: %ld (pos), %ld (size)", des->pos, des->size);
-	const unsigned char *str = des->stream + des->pos;
-	des->pos += 4;
-	return ((str[0] << 24) | (str[1] << 16) | (str[2] << 8) | str[3]);
+long des_read_uint32(AMF_DESERIALIZER *des) {
+    DES_BOUNDS_CHECK(des, 4);
+    const unsigned char *str = des->stream + des->pos;
+    des->pos += 4;
+    return ((str[0] << 24) | (str[1] << 16) | (str[2] << 8) | str[3]);
 }
 
-static double des_read_double(AMF_DESERIALIZER *des) {
-    if(des->pos + 8 > des->size) rb_raise(rb_eRangeError, "double reading beyond end of source: %ld (pos), %ld (size)", des->pos, des->size);
-
+/*
+ * Read a network double
+ */
+double des_read_double(AMF_DESERIALIZER *des) {
+    DES_BOUNDS_CHECK(des, 8);
     union aligned {
         double dval;
         char cval[8];
@@ -108,15 +96,18 @@ static double des_read_double(AMF_DESERIALIZER *des) {
     return d.dval;
 }
 
-static int des_read_int(AMF_DESERIALIZER *des) {
+/*
+ * Read an AMF3 style integer
+ */
+int des_read_int(AMF_DESERIALIZER *des) {
     int result = 0, byte_cnt = 0;
-    if(des->pos > des->size) rb_raise(rb_eRangeError, "amf3 int reading beyond end of source: %ld (pos), %ld (size)", des->pos, des->size);
+    DES_BOUNDS_CHECK(des, 1);
     char byte =  des->stream[des->pos++];
 
     while(byte & 0x80 && byte_cnt < 3) {
         result <<= 7;
         result |= byte & 0x7f;
-        if(des->pos > des->size) rb_raise(rb_eRangeError, "amf3 int reading beyond end of source: %ld (pos), %ld (size)", des->pos, des->size);
+        DES_BOUNDS_CHECK(des, 1);
         byte = des->stream[des->pos++];
         byte_cnt++;
     }
@@ -136,8 +127,11 @@ static int des_read_int(AMF_DESERIALIZER *des) {
     return result;
 }
 
-static VALUE des_read_string(AMF_DESERIALIZER *des, long len) {
-    if(des->pos + len > des->size) rb_raise(rb_eRangeError, "string reading beyond end of source: %ld (pos), %ld (len), %ld (size)", des->pos, len, des->size);
+/*
+ * Read a string and then force the encoding to UTF 8 if running ruby 1.9
+ */
+VALUE des_read_string(AMF_DESERIALIZER *des, long len) {
+    DES_BOUNDS_CHECK(des, len);
     VALUE str = rb_str_new(des->stream + des->pos, len);
 #ifdef HAVE_RB_STR_ENCODE
     rb_encoding *utf8 = rb_utf8_encoding();
@@ -148,10 +142,13 @@ static VALUE des_read_string(AMF_DESERIALIZER *des, long len) {
     return str;
 }
 
-static VALUE des_read_sym(AMF_DESERIALIZER *des, long len) {
-    // Optimization for reading out symbols, rather than creating ruby string
-    // and then converting to sym
-    if(des->pos + len > des->size) rb_raise(rb_eRangeError, "sym reading beyond end of source: %ld (pos), %ld (len), %ld (size)", des->pos, len, des->size);
+/*
+ * Because Ruby 1.8 doesn't have a good optimization for looking up symbols from
+ * C strings, this function does the lookup without requiring any additional
+ * allocations.
+ */
+VALUE des_read_sym(AMF_DESERIALIZER *des, long len) {
+    DES_BOUNDS_CHECK(des, len);
     char end = des->stream[des->pos+len];
     des->stream[des->pos+len] = '\0';
     VALUE sym = ID2SYM(rb_intern(des->stream + des->pos));
@@ -161,14 +158,25 @@ static VALUE des_read_sym(AMF_DESERIALIZER *des, long len) {
 }
 
 /*
- * Allocate new deserializer and initialize object cache
+ * Set the source of the amf reader, whether it's a StringIO object or a string,
+ * copying over position if available
  */
-static VALUE des0_alloc(VALUE klass) {
-    AMF_DESERIALIZER *des = ALLOC(AMF_DESERIALIZER);
-    memset(des, 0, sizeof(AMF_DESERIALIZER));
-    VALUE self = Data_Wrap_Struct(klass, des_mark, des_free, des);
-    des->obj_cache = rb_ary_new();
-    return self;
+void des_set_src(AMF_DESERIALIZER *des, VALUE src) {
+    des->src = src;
+    VALUE klass = CLASS_OF(src);
+    if(klass == cStringIO) {
+        VALUE str = rb_funcall(src, rb_intern("string"), 0);
+        des->stream = RSTRING_PTR(str);
+        des->pos = NUM2LONG(rb_funcall(src, rb_intern("pos"), 0));
+        des->size = RSTRING_LEN(str);
+    } else if(klass == rb_cString) {
+        des->stream = RSTRING_PTR(src);
+        des->pos = 0;
+        des->size = RSTRING_LEN(src);
+    } else {
+        rb_raise(rb_eArgError, "Invalid source type to deserialize from");
+    }
+    if(des->pos >= des->size) rb_raise(rb_eRangeError, "already at the end of the source");
 }
 
 /*
@@ -176,18 +184,21 @@ static VALUE des0_alloc(VALUE klass) {
  * AMF3 internal deserialize function
  */
 static VALUE des0_read_amf3(AMF_DESERIALIZER *des) {
-    VALUE amf3_des = rb_class_new_instance(0, NULL, cAMF3Deserializer);
+    // Save caches
+    VALUE obj_cache = des->obj_cache;
 
-    // Copy source over
-    AMF_DESERIALIZER *amf3_des_struct;
-    Data_Get_Struct(amf3_des, AMF_DESERIALIZER, amf3_des_struct);
-    amf3_des_struct->src    = des->src;
-    amf3_des_struct->stream = des->stream;
-    amf3_des_struct->pos    = des->pos;
-    amf3_des_struct->size   = des->size;
+    // Run AMF3 deserialize
+    des->obj_cache = rb_ary_new();
+    des->str_cache = rb_ary_new();
+    des->trait_cache = rb_ary_new();
+    VALUE r = des3_deserialize(des);
 
-    // Deserialize
-    return des3_deserialize_internal(amf3_des_struct);
+    // Restore caches
+    des->obj_cache = obj_cache;
+    des->str_cache = (VALUE)NULL;
+    des->trait_cache = (VALUE)NULL;
+
+    return r;
 }
 
 /*
@@ -203,7 +214,7 @@ static void des0_read_props(AMF_DESERIALIZER *des, VALUE hash, VALUE(*read_key)(
         } else {
             VALUE key = read_key(des, len);
             char type = des_read_byte(des);
-            rb_hash_aset(hash, key, des0_deserialize_type(des, type));
+            rb_hash_aset(hash, key, des0_deserialize(des, type));
         }
     }
 }
@@ -250,7 +261,7 @@ static VALUE des0_read_array(AMF_DESERIALIZER *des) {
 
     long i;
     for(i = 0; i < len; i++) {
-        rb_ary_push(ary, des0_deserialize_type(des, des_read_byte(des)));
+        rb_ary_push(ary, des0_deserialize(des, des_read_byte(des)));
     }
 
     return ary;
@@ -265,48 +276,67 @@ static VALUE des0_read_time(AMF_DESERIALIZER *des) {
 }
 
 /*
- * Internal deserialize call. Takes deserializer struct and a char for the type
+ * Internal C deserialize call. Takes deserializer struct and a char for the type
  * marker.
  */
-static VALUE des0_deserialize_type(AMF_DESERIALIZER *des, char type) {
-    long tmp;
+VALUE des0_deserialize(AMF_DESERIALIZER *des, char type) {
+    if(des->depth == 0) {
+        des->obj_cache = rb_ary_new();
+    }
+    des->depth++;
 
+    long tmp;
+    VALUE ret = Qnil;
     switch(type) {
         case AMF0_STRING_MARKER:
-            return des_read_string(des, des_read_uint16(des));
+            ret = des_read_string(des, des_read_uint16(des));
+            break;
         case AMF0_AMF3_MARKER:
-            return des0_read_amf3(des);
+            ret = des0_read_amf3(des);
+            break;
         case AMF0_NUMBER_MARKER:
-            return rb_float_new(des_read_double(des));
+            ret = rb_float_new(des_read_double(des));
+            break;
         case AMF0_BOOLEAN_MARKER:
-            return des_read_byte(des) == 0 ? Qfalse : Qtrue;
+            ret = des_read_byte(des) == 0 ? Qfalse : Qtrue;
+            break;
         case AMF0_NULL_MARKER:
         case AMF0_UNDEFINED_MARKER:
         case AMF0_UNSUPPORTED_MARKER:
-            return Qnil;
+            ret = Qnil;
+            break;
         case AMF0_OBJECT_MARKER:
-            return des0_read_object(des);
+            ret = des0_read_object(des);
+            break;
         case AMF0_TYPED_OBJECT_MARKER:
-            return des0_read_typed_object(des);
+            ret = des0_read_typed_object(des);
+            break;
         case AMF0_HASH_MARKER:
-            return des0_read_hash(des);
+            ret = des0_read_hash(des);
+            break;
         case AMF0_STRICT_ARRAY_MARKER:
-            return des0_read_array(des);
+            ret = des0_read_array(des);
+            break;
         case AMF0_REFERENCE_MARKER:
             tmp = des_read_uint16(des);
             if(tmp >= RARRAY_LEN(des->obj_cache)) rb_raise(rb_eRangeError, "reference index beyond end");
-            return RARRAY_PTR(des->obj_cache)[tmp];
+            ret = RARRAY_PTR(des->obj_cache)[tmp];
+            break;
         case AMF0_DATE_MARKER:
-            return des0_read_time(des);
+            ret = des0_read_time(des);
+            break;
         case AMF0_XML_MARKER:
         case AMF0_LONG_STRING_MARKER:
-            return des_read_string(des, des_read_uint32(des));
+            ret = des_read_string(des, des_read_uint32(des));
+            break;
         default:
             rb_raise(rb_eRuntimeError, "Not supported: %d\n", type);
             break;
     }
 
-    return Qnil;
+    des->depth--;
+
+    return ret;
 }
 
 /*
@@ -316,24 +346,11 @@ static VALUE des0_deserialize_type(AMF_DESERIALIZER *des, char type) {
  *
  * Deserialize the string or StringIO from AMF to a ruby object.
  */
-static VALUE des0_deserialize(VALUE self, VALUE src) {
+static VALUE des0_deserialize_rb(VALUE self, VALUE src) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
     des_set_src(des, src);
-    return des0_deserialize_type(des, des_read_byte(des));
-}
-
-/*
- * Allocate new deserializer and initialize caches
- */
-static VALUE des3_alloc(VALUE klass) {
-    AMF_DESERIALIZER *des = ALLOC(AMF_DESERIALIZER);
-    memset(des, 0, sizeof(AMF_DESERIALIZER));
-    VALUE self = Data_Wrap_Struct(klass, des_mark, des_free, des);
-    des->obj_cache = rb_ary_new();
-    des->str_cache = rb_ary_new();
-    des->trait_cache = rb_ary_new();
-    return self;
+    return des0_deserialize(des, des_read_byte(des));
 }
 
 static VALUE des3_read_string(AMF_DESERIALIZER *des) {
@@ -417,7 +434,7 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
 
         VALUE props = rb_hash_new();
         for(i = 0; i < members_len; i++) {
-            rb_hash_aset(props, rb_str_intern(RARRAY_PTR(members)[i]), des3_deserialize_internal(des));
+            rb_hash_aset(props, rb_str_intern(RARRAY_PTR(members)[i]), des3_deserialize(des));
         }
 
         VALUE dynamic_props = Qnil;
@@ -426,7 +443,7 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
             while(1) {
                 VALUE key = des3_read_string(des);
                 if(RSTRING_LEN(key) == 0) break;
-                rb_hash_aset(dynamic_props, rb_str_intern(key), des3_deserialize_internal(des));
+                rb_hash_aset(dynamic_props, rb_str_intern(key), des3_deserialize(des));
             }
         }
 
@@ -452,11 +469,11 @@ static VALUE des3_read_array(AMF_DESERIALIZER *des) {
             obj = rb_hash_new();
             rb_ary_push(des->obj_cache, obj);
             while(RSTRING_LEN(key) != 0) {
-                rb_hash_aset(obj, key, des3_deserialize_internal(des));
+                rb_hash_aset(obj, key, des3_deserialize(des));
                 key = des3_read_string(des);
             }
             for(i = 0; i < header; i++) {
-                rb_hash_aset(obj, rb_fix2str(INT2FIX(i), 10), des3_deserialize_internal(des));
+                rb_hash_aset(obj, rb_fix2str(INT2FIX(i), 10), des3_deserialize(des));
             }
         } else {
             // Limit size of pre-allocation to force remote user to actually send data,
@@ -465,7 +482,7 @@ static VALUE des3_read_array(AMF_DESERIALIZER *des) {
             obj = rb_ary_new2(header < MAX_ARRAY_PREALLOC ? header : MAX_ARRAY_PREALLOC);
             rb_ary_push(des->obj_cache, obj);
             for(i = 0; i < header; i++) {
-                rb_ary_push(obj, des3_deserialize_internal(des));
+                rb_ary_push(obj, des3_deserialize(des));
             }
         }
         return obj;
@@ -525,8 +542,8 @@ static VALUE des3_read_dict(AMF_DESERIALIZER *des) {
 
         int i;
         for(i = 0; i < header; i++) {
-            VALUE key = des3_deserialize_internal(des);
-            VALUE val = des3_deserialize_internal(des);
+            VALUE key = des3_deserialize(des);
+            VALUE val = des3_deserialize(des);
             rb_hash_aset(dict, key, val);
         }
 
@@ -539,40 +556,63 @@ static VALUE des3_read_dict(AMF_DESERIALIZER *des) {
  * itself, due to minor changes in the specs that make that modification
  * unnecessary
  */
-static VALUE des3_deserialize_internal(AMF_DESERIALIZER *des) {
+VALUE des3_deserialize(AMF_DESERIALIZER *des) {
+    if(des->depth == 0) {
+        des->obj_cache = rb_ary_new();
+        des->str_cache = rb_ary_new();
+        des->trait_cache = rb_ary_new();
+    }
+    des->depth++;
+
     char type = des_read_byte(des);
+    VALUE ret = Qnil;
     switch(type) {
         case AMF3_UNDEFINED_MARKER:
         case AMF3_NULL_MARKER:
-            return Qnil;
+            ret = Qnil;
+            break;
         case AMF3_FALSE_MARKER:
-            return Qfalse;
+            ret = Qfalse;
+            break;
         case AMF3_TRUE_MARKER:
-            return Qtrue;
+            ret = Qtrue;
+            break;
         case AMF3_INTEGER_MARKER:
-            return INT2FIX(des_read_int(des));
+            ret = INT2FIX(des_read_int(des));
+            break;
         case AMF3_DOUBLE_MARKER:
-            return rb_float_new(des_read_double(des));
+            ret = rb_float_new(des_read_double(des));
+            break;
         case AMF3_STRING_MARKER:
-            return des3_read_string(des);
+            ret = des3_read_string(des);
+            break;
         case AMF3_ARRAY_MARKER:
-            return des3_read_array(des);
+            ret = des3_read_array(des);
+            break;
         case AMF3_OBJECT_MARKER:
-            return des3_read_object(des);
+            ret = des3_read_object(des);
+            break;
         case AMF3_DATE_MARKER:
-            return des3_read_time(des);
+            ret = des3_read_time(des);
+            break;
         case AMF3_XML_DOC_MARKER:
         case AMF3_XML_MARKER:
-            return des3_read_xml(des);
+            ret = des3_read_xml(des);
+            break;
         case AMF3_BYTE_ARRAY_MARKER:
-            return des3_read_byte_array(des);
+            ret = des3_read_byte_array(des);
+            break;
         case AMF3_DICT_MARKER:
-            return des3_read_dict(des);
+            ret = des3_read_dict(des);
+            break;
         default:
             rb_raise(rb_eRuntimeError, "Not supported: %d\n", type);
             break;
     }
-    return Qnil;
+
+    des->depth--;
+
+    return ret;
 }
 
 /*
@@ -582,23 +622,23 @@ static VALUE des3_deserialize_internal(AMF_DESERIALIZER *des) {
  *
  * Deserialize the string or StringIO from AMF to a ruby object.
  */
-static VALUE des3_deserialize(VALUE self, VALUE src) {
+static VALUE des3_deserialize_rb(VALUE self, VALUE src) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
     des_set_src(des, src);
-    return des3_deserialize_internal(des);
+    return des3_deserialize(des);
 }
 
 void Init_rocket_amf_deserializer() {
     // Define Deserializer
     VALUE cDeserializer = rb_define_class_under(mRocketAMFExt, "Deserializer", rb_cObject);
-    rb_define_alloc_func(cDeserializer, des0_alloc);
-    rb_define_method(cDeserializer, "deserialize", des0_deserialize, 1);
+    rb_define_alloc_func(cDeserializer, des_alloc);
+    rb_define_method(cDeserializer, "deserialize", des0_deserialize_rb, 1);
 
     // Define Deserializer
     cAMF3Deserializer = rb_define_class_under(mRocketAMFExt, "AMF3Deserializer", rb_cObject);
-    rb_define_alloc_func(cAMF3Deserializer, des3_alloc);
-    rb_define_method(cAMF3Deserializer, "deserialize", des3_deserialize, 1);
+    rb_define_alloc_func(cAMF3Deserializer, des_alloc);
+    rb_define_method(cAMF3Deserializer, "deserialize", des3_deserialize_rb, 1);
 
     // Get refs to commonly used symbols and ids
     id_get_ruby_obj = rb_intern("get_ruby_obj");
