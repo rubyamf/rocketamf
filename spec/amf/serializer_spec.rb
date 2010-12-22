@@ -214,6 +214,21 @@ describe "when serializing" do
         output.should == expected
       end
 
+      it "should serialize externalizable objects" do
+        a = ExternalizableTest.new
+        a.one = 5
+        a.two = 7
+        b = ExternalizableTest.new
+        b.one = 13
+        b.two = 5
+        obj = [a, b]
+
+        expected = object_fixture("amf3-externalizable.bin")
+        input = obj
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
       it "should serialize a hash as a dynamic anonymous object" do
         hash = {}
         hash[:answer] = 42

@@ -222,6 +222,17 @@ describe "when deserializing" do
         output.baz.should == nil
       end
 
+      it "should deserialize externalizable objects" do
+        RocketAMF::ClassMapper.define {|m| m.map :as => 'ExternalizableTest', :ruby => 'ExternalizableTest'}
+
+        input = object_fixture("amf3-externalizable.bin")
+        output = RocketAMF.deserialize(input, 3)
+
+        output.length.should == 2
+        output[0].one.should == 5
+        output[1].two.should == 5
+      end
+
       it "should deserialize a hash as a dynamic anonymous object" do
         input = object_fixture("amf3-hash.bin")
         output = RocketAMF.deserialize(input, 3)

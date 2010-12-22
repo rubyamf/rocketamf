@@ -26,5 +26,5 @@ VALUE des_read_string(AMF_DESERIALIZER *des, long len);
 VALUE des_read_sym(AMF_DESERIALIZER *des, long len);
 void des_set_src(AMF_DESERIALIZER *des, VALUE src);
 
-VALUE des0_deserialize(AMF_DESERIALIZER *des, char type);
-VALUE des3_deserialize(AMF_DESERIALIZER *des);
+VALUE des0_deserialize(VALUE self, char type);
+VALUE des3_deserialize(VALUE self);

@@ -330,7 +330,7 @@ module RocketAMF
 
         # If externalizable, take externalized data shortcut
         if traits[:externalizable]
-          serialize obj.externalized_data
+          obj.write_external(self)
           return
         end
 

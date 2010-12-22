@@ -38,3 +38,23 @@ class ClassMappingTest2 < ClassMappingTest
   attr_accessor :prop_c
 end
 module ANamespace; class TestRubyClass; end; end
+class ExternalizableTest
+  include RocketAMF::Pure::ReadIOHelpers
+  include RocketAMF::Pure::WriteIOHelpers
+
+  attr_accessor :one, :two
+
+  def encode_amf serializer
+    serializer.write_object(self, nil, {:class_name => 'ExternalizableTest', :dynamic => false, :externalizable => true, :members => []})
+  end
+
+  def read_external des
+    @one = read_double(des.source)
+    @two = read_double(des.source)
+  end
+
+  def write_external ser
+    ser.stream << pack_double(@one)
+    ser.stream << pack_double(@two)
+  end
+end

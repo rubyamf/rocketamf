@@ -1,12 +1,12 @@
 module RocketAMF
   module Values #:nodoc:
     class ArrayCollection < Array
-      def externalized_data
-        [] + self # Duplicate as an array
+      def read_external des
+        push(*des.deserialize)
       end
 
-      def externalized_data=(data)
-        push(*data)
+      def write_external ser
+        ser.serialize([] + self) # Duplicate as an array
       end
     end
   end

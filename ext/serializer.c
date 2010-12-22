@@ -11,6 +11,7 @@ extern VALUE sym_class_name;
 extern VALUE sym_members;
 extern VALUE sym_externalizable;
 extern VALUE sym_dynamic;
+VALUE cArrayCollection;
 ID id_size;
 ID id_haskey;
 ID id_encode_amf;
@@ -29,9 +30,6 @@ AMF_SERIALIZER* ser_new() {
 
     // Initialize stream
     ser->stream = rb_str_buf_new(0);
-
-    // Other configs
-    ser->return_str = Qtrue;
 
     return ser;
 }
@@ -144,6 +142,12 @@ void ser_get_string(VALUE obj, char** str, long* len) {
     } else {
         rb_raise(rb_eArgError, "Invalid type in ser_get_string: %d", type);
     }
+}
+
+static VALUE ser_stream(VALUE self) {
+    AMF_SERIALIZER *ser;
+    Data_Get_Struct(self, AMF_SERIALIZER, ser);
+    return ser->stream;
 }
 
 /*
@@ -382,12 +386,8 @@ VALUE ser0_serialize(VALUE self, VALUE obj) {
         // Clean up
         xfree(ser->obj_cache);
         ser->obj_cache = NULL;
-
-        // Return string if enabled
-        return ser->return_str == Qtrue ? ser->stream : Qnil;
-    } else {
-        return Qnil;
     }
+    return ser->stream;
 }
 
 /*
@@ -558,7 +558,7 @@ static VALUE ser3_write_object0(VALUE self, VALUE obj, VALUE props, VALUE traits
 
     // Raise exception if marked externalizable
     if(externalizable == Qtrue) {
-        rb_raise(rb_eRuntimeError, "externalizable serialization unsupported in native extension");
+        rb_funcall(obj, rb_intern("write_external"), 1, self);
         return self;
     }
 
@@ -594,6 +594,17 @@ static VALUE ser3_write_object0(VALUE self, VALUE obj, VALUE props, VALUE traits
     }
 
     return self;
+}
+
+/*
+ * Writes the given object as an ArrayCollection
+ */
+static VALUE ser3_write_array_collection(VALUE self, VALUE ary) {
+    VALUE traits = rb_hash_new();
+    rb_hash_aset(traits, sym_class_name, rb_str_new2("flex.messaging.io.ArrayCollection"));
+    rb_hash_aset(traits, sym_dynamic, Qfalse);
+    rb_hash_aset(traits, sym_externalizable, Qtrue);
+    return ser3_write_object0(self, ary, Qnil, traits);
 }
 
 /*
@@ -702,7 +713,7 @@ VALUE ser3_serialize(VALUE self, VALUE obj) {
 
     int type = TYPE(obj);
     VALUE klass = Qnil;
-    if(type == T_OBJECT || type == T_DATA) {
+    if(type == T_OBJECT || type == T_DATA || type == T_ARRAY) {
         klass = CLASS_OF(obj);
     }
 
@@ -731,6 +742,8 @@ VALUE ser3_serialize(VALUE self, VALUE obj) {
         ser_write_byte(ser, AMF3_TRUE_MARKER);
     } else if(type == T_FALSE) {
         ser_write_byte(ser, AMF3_FALSE_MARKER);
+    } else if(klass == cArrayCollection) {
+        ser3_write_array_collection(self, obj);
     } else if(type == T_ARRAY) {
         ser3_write_array(self, obj);
     } else if(type == T_HASH) {
@@ -758,12 +771,8 @@ VALUE ser3_serialize(VALUE self, VALUE obj) {
         ser->trait_cache = NULL;
         xfree(ser->obj_cache);
         ser->obj_cache = NULL;
-
-        // Return string if enabled
-        return ser->return_str == Qtrue ? ser->stream : Qnil;
-    } else {
-        return Qnil;
     }
+    return ser->stream;
 }
 
 void Init_rocket_amf_serializer() {
@@ -771,6 +780,7 @@ void Init_rocket_amf_serializer() {
     VALUE cSerializer = rb_define_class_under(mRocketAMFExt, "Serializer", rb_cObject);
     rb_define_alloc_func(cSerializer, ser_alloc);
     rb_define_method(cSerializer, "version", ser0_version, 0);
+    rb_define_method(cSerializer, "stream", ser_stream, 0);
     rb_define_method(cSerializer, "serialize", ser0_serialize, 1);
     rb_define_method(cSerializer, "write_array", ser0_write_array, 1);
     rb_define_method(cSerializer, "write_hash", ser0_write_object, -1);
@@ -780,11 +790,13 @@ void Init_rocket_amf_serializer() {
     VALUE cAMF3Serializer = rb_define_class_under(mRocketAMFExt, "AMF3Serializer", rb_cObject);
     rb_define_alloc_func(cAMF3Serializer, ser_alloc);
     rb_define_method(cAMF3Serializer, "version", ser3_version, 0);
+    rb_define_method(cAMF3Serializer, "stream", ser_stream, 0);
     rb_define_method(cAMF3Serializer, "serialize", ser3_serialize, 1);
     rb_define_method(cAMF3Serializer, "write_array", ser3_write_array, 1);
     rb_define_method(cAMF3Serializer, "write_object", ser3_write_object, -1);
 
     // Get refs to commonly used symbols and ids
+    cArrayCollection = rb_const_get(rb_const_get(mRocketAMF, rb_intern("Values")), rb_intern("ArrayCollection"));
     id_size = rb_intern("size");
     id_haskey = rb_intern("has_key?");
     id_encode_amf = rb_intern("encode_amf");

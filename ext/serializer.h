@@ -7,7 +7,6 @@
 typedef struct {
     VALUE stream;
     long depth;
-    VALUE return_str;
     st_table* str_cache;
     long str_index;
     st_table* trait_cache;
