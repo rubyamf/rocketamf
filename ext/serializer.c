@@ -4,6 +4,8 @@
 
 extern VALUE mRocketAMF;
 extern VALUE mRocketAMFExt;
+extern VALUE cSerializer;
+extern VALUE cAMF3Serializer;
 extern VALUE cStringIO;
 extern VALUE cDate;
 extern VALUE cDateTime;
@@ -23,20 +25,6 @@ ID id_utc;
 ID id_to_f;
 
 /*
- * Allocate new serializer struct and initialize stream
- */
-AMF_SERIALIZER* ser_new() {
-    // Allocate struct
-    AMF_SERIALIZER *ser = ALLOC(AMF_SERIALIZER);
-    memset(ser, 0, sizeof(AMF_SERIALIZER));
-
-    // Initialize stream
-    ser->stream = rb_str_buf_new(0);
-
-    return ser;
-}
-
-/*
  * Mark the stream
  */
 static void ser_mark(AMF_SERIALIZER *ser) {
@@ -47,7 +35,7 @@ static void ser_mark(AMF_SERIALIZER *ser) {
 /*
  * Free cache tables, stream and the struct itself
  */
-void ser_free(AMF_SERIALIZER *ser) {
+static void ser_free(AMF_SERIALIZER *ser) {
     if(ser->str_cache) st_free_table(ser->str_cache);
     if(ser->trait_cache) st_free_table(ser->trait_cache);
     if(ser->obj_cache) st_free_table(ser->obj_cache);
@@ -58,7 +46,14 @@ void ser_free(AMF_SERIALIZER *ser) {
  * Create new struct and wrap with class
  */
 static VALUE ser_alloc(VALUE klass) {
-    return Data_Wrap_Struct(klass, ser_mark, ser_free, ser_new());
+    // Allocate struct
+    AMF_SERIALIZER *ser = ALLOC(AMF_SERIALIZER);
+    memset(ser, 0, sizeof(AMF_SERIALIZER));
+
+    // Initialize stream
+    ser->stream = rb_str_buf_new(0);
+
+    return Data_Wrap_Struct(klass, ser_mark, ser_free, ser);
 }
 
 void ser_write_byte(AMF_SERIALIZER *ser, char byte) {
@@ -792,7 +787,7 @@ VALUE ser3_serialize(VALUE self, VALUE obj) {
 
 void Init_rocket_amf_serializer() {
     // Define Serializer
-    VALUE cSerializer = rb_define_class_under(mRocketAMFExt, "Serializer", rb_cObject);
+    cSerializer = rb_define_class_under(mRocketAMFExt, "Serializer", rb_cObject);
     rb_define_alloc_func(cSerializer, ser_alloc);
     rb_define_method(cSerializer, "version", ser0_version, 0);
     rb_define_method(cSerializer, "stream", ser_stream, 0);
@@ -802,7 +797,7 @@ void Init_rocket_amf_serializer() {
     rb_define_method(cSerializer, "write_object", ser0_write_object, -1);
 
     // Define AMF3Serializer
-    VALUE cAMF3Serializer = rb_define_class_under(mRocketAMFExt, "AMF3Serializer", rb_cObject);
+    cAMF3Serializer = rb_define_class_under(mRocketAMFExt, "AMF3Serializer", rb_cObject);
     rb_define_alloc_func(cAMF3Serializer, ser_alloc);
     rb_define_method(cAMF3Serializer, "version", ser3_version, 0);
     rb_define_method(cAMF3Serializer, "stream", ser_stream, 0);

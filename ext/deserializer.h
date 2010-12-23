@@ -14,9 +14,6 @@ typedef struct {
     VALUE trait_cache;
 } AMF_DESERIALIZER;
 
-AMF_DESERIALIZER* des_new();
-void des_free(AMF_DESERIALIZER *des);
-
 char des_read_byte(AMF_DESERIALIZER *des);
 int des_read_uint16(AMF_DESERIALIZER *des);
 long des_read_uint32(AMF_DESERIALIZER *des);

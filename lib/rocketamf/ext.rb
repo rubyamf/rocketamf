@@ -1,4 +1,3 @@
-require 'rocketamf/pure/remoting'
 require 'rocketamf_ext'
 
 module RocketAMF
@@ -21,7 +20,7 @@ module RocketAMF
   class Envelope
     remove_method :populate_from_stream
     remove_method :serialize
-    include RocketAMF::Pure::Envelope
+    include RocketAMF::Ext::Envelope
   end
   #:startdoc:
 end

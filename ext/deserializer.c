@@ -5,23 +5,15 @@
 
 extern VALUE mRocketAMF;
 extern VALUE mRocketAMFExt;
+extern VALUE cDeserializer;
+extern VALUE cAMF3Deserializer;
 extern VALUE cStringIO;
-VALUE cAMF3Deserializer;
 extern VALUE sym_class_name;
 extern VALUE sym_members;
 extern VALUE sym_externalizable;
 extern VALUE sym_dynamic;
 ID id_get_ruby_obj;
 ID id_populate_ruby_obj;
-
-/*
- * Allocate a new deserializer struct and zero it out
- */
-AMF_DESERIALIZER* des_new() {
-    AMF_DESERIALIZER *des = ALLOC(AMF_DESERIALIZER);
-    memset(des, 0, sizeof(AMF_DESERIALIZER));
-    return des;
-}
 
 /*
  * Mark the reader and its source. If caches are populated mark them as well.
@@ -38,7 +30,7 @@ static void des_mark(AMF_DESERIALIZER *des) {
  * Free the reader. Don't need to free anything but the struct because we didn't
  * alloc anything - source is from the ruby source object.
  */
-void des_free(AMF_DESERIALIZER *des) {
+static void des_free(AMF_DESERIALIZER *des) {
     xfree(des);
 }
 
@@ -46,7 +38,9 @@ void des_free(AMF_DESERIALIZER *des) {
  * Create new struct and wrap with class
  */
 static VALUE des_alloc(VALUE klass) {
-    return Data_Wrap_Struct(klass, des_mark, des_free, des_new());
+    AMF_DESERIALIZER *des = ALLOC(AMF_DESERIALIZER);
+    memset(des, 0, sizeof(AMF_DESERIALIZER));
+    return Data_Wrap_Struct(klass, des_mark, des_free, des);
 }
 
 char des_read_byte(AMF_DESERIALIZER *des) {
@@ -702,7 +696,7 @@ static VALUE des3_deserialize_rb(int argc, VALUE *argv, VALUE self) {
 
 void Init_rocket_amf_deserializer() {
     // Define Deserializer
-    VALUE cDeserializer = rb_define_class_under(mRocketAMFExt, "Deserializer", rb_cObject);
+    cDeserializer = rb_define_class_under(mRocketAMFExt, "Deserializer", rb_cObject);
     rb_define_alloc_func(cDeserializer, des_alloc);
     rb_define_method(cDeserializer, "source", des_source, 0);
     rb_define_method(cDeserializer, "deserialize", des0_deserialize_rb, -1);

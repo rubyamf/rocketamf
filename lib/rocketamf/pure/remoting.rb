@@ -26,7 +26,7 @@ module RocketAMF
           must_understand = read_int8(stream) != 0
           length = read_word32_network stream
           data = RocketAMF.deserialize stream
-          @headers[name] << RocketAMF::Header.new(name, must_understand, data)
+          @headers[name] = RocketAMF::Header.new(name, must_understand, data)
         end
 
         # Read in messages

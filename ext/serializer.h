@@ -20,9 +20,6 @@ typedef struct {
     VALUE extra;
 } ITER_ARGS;
 
-AMF_SERIALIZER* ser_new();
-void ser_free(AMF_SERIALIZER *ser);
-
 void ser_write_byte(AMF_SERIALIZER *ser, char byte);
 void ser_write_int(AMF_SERIALIZER *ser, int num);
 void ser_write_uint16(AMF_SERIALIZER *ser, long num);

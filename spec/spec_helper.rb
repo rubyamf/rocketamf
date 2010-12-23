@@ -10,6 +10,7 @@ require 'spec/autorun'
 $:.unshift(File.dirname(__FILE__) + '/../ext')
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'rocketamf'
+require 'rocketamf/pure/io_helpers' # Just to make sure they get loaded
 
 def request_fixture(binary_path)
   data = File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path).read

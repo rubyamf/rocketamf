@@ -2,6 +2,10 @@
 
 VALUE mRocketAMF;
 VALUE mRocketAMFExt;
+VALUE cDeserializer;
+VALUE cAMF3Deserializer;
+VALUE cSerializer;
+VALUE cAMF3Serializer;
 VALUE cStringIO;
 VALUE cDate;
 VALUE cDateTime;
@@ -13,6 +17,7 @@ VALUE sym_dynamic;
 void Init_rocket_amf_deserializer();
 void Init_rocket_amf_serializer();
 void Init_rocket_amf_fast_class_mapping();
+void Init_rocket_amf_remoting();
 
 void Init_rocketamf_ext() {
     mRocketAMF = rb_define_module("RocketAMF");
@@ -22,6 +27,7 @@ void Init_rocketamf_ext() {
     Init_rocket_amf_deserializer();
     Init_rocket_amf_serializer();
     Init_rocket_amf_fast_class_mapping();
+    Init_rocket_amf_remoting();
 
     // Get refs to commonly used symbols and ids
     cStringIO = rb_const_get(rb_cObject, rb_intern("StringIO"));
