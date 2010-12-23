@@ -3,18 +3,10 @@ $:.unshift "#{File.expand_path(File.dirname(__FILE__))}/rocketamf/"
 
 require "date"
 require "stringio"
+require 'rocketamf/extensions'
 require 'rocketamf/class_mapping'
 require 'rocketamf/constants'
 require 'rocketamf/remoting'
-
-# Joc's monkeypatch for string bytesize (only available in 1.8.7+)
-if !"amf".respond_to? :bytesize
-  class String
-    def bytesize
-      self.size
-    end
-  end
-end
 
 # RocketAMF is a full featured AMF0/3 serializer and deserializer with support
 # for Flash -> Ruby and Ruby -> Flash class mapping, custom serializers,

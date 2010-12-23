@@ -15,6 +15,8 @@ VALUE cArrayCollection;
 ID id_size;
 ID id_haskey;
 ID id_encode_amf;
+ID id_is_array_collection;
+ID id_use_array_collection;
 ID id_get_as_class_name;
 ID id_props_for_serialization;
 ID id_utc;
@@ -402,44 +404,6 @@ static VALUE ser3_version(VALUE self) {
 }
 
 /*
- * call-seq:
- *   ser.write_array(ary) => ser
- *
- * Writes the given array using AMF3 notation
- */
-static VALUE ser3_write_array(VALUE self, VALUE ary) {
-    AMF_SERIALIZER *ser;
-    Data_Get_Struct(self, AMF_SERIALIZER, ser);
-
-    // Write type marker
-    ser_write_byte(ser, AMF3_ARRAY_MARKER);
-
-    // Write object ref, or cache it
-    VALUE obj_id = rb_obj_id(ary);
-    VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
-        ser_write_int(ser, FIX2INT(obj_index) << 1);
-        return self;
-    } else {
-        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
-        ser->obj_index++;
-    }
-
-    // Write header
-    int header = ((int)RARRAY_LEN(ary)) << 1 | 1;
-    ser_write_int(ser, header);
-    ser_write_byte(ser, AMF3_CLOSE_DYNAMIC_ARRAY);
-
-    // Write contents
-    long i, len = RARRAY_LEN(ary);
-    for(i = 0; i < len; i++) {
-        ser3_serialize(self, RARRAY_PTR(ary)[i]);
-    }
-
-    return self;
-}
-
-/*
  * Writes an AMF3 style string. Accepts strings, symbols, and nil, and handles
  * all the necessary encoding and caching.
  */
@@ -462,6 +426,70 @@ static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj, VALUE cache) {
         ser_write_int(ser, ((int)len) << 1 | 1);
         rb_str_buf_cat(ser->stream, str, len);
     }
+}
+
+/*
+ * call-seq:
+ *   ser.write_array(ary) => ser
+ *
+ * Writes the given array using AMF3 notation
+ */
+static VALUE ser3_write_array(VALUE self, VALUE ary) {
+    static VALUE class_mapper = 0;
+    if(class_mapper == 0) class_mapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
+    AMF_SERIALIZER *ser;
+    Data_Get_Struct(self, AMF_SERIALIZER, ser);
+
+    // Is it an array collection?
+    VALUE is_ac = Qfalse;
+    if(rb_respond_to(ary, id_is_array_collection)) {
+        is_ac = rb_funcall(ary, id_is_array_collection, 0);
+    } else {
+        is_ac = rb_funcall(class_mapper, id_use_array_collection, 0);
+    }
+
+    // Write type marker
+    ser_write_byte(ser, is_ac ? AMF3_OBJECT_MARKER : AMF3_ARRAY_MARKER);
+
+    // Write object ref, or cache it
+    VALUE obj_id = rb_obj_id(ary);
+    VALUE obj_index;
+    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+        ser_write_int(ser, FIX2INT(obj_index) << 1);
+        return self;
+    } else {
+        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        ser->obj_index++;
+    }
+
+    // Write out traits and array marker if it's an array collection
+    if(is_ac) {
+        VALUE trait_index;
+        char array_collection_name[34] = "flex.messaging.io.ArrayCollection";
+        if(st_lookup(ser->trait_cache, (st_data_t)array_collection_name, &trait_index)) {
+            ser_write_int(ser, FIX2INT(trait_index) << 2 | 0x01);
+        } else {
+            st_add_direct(ser->trait_cache, (st_data_t)strdup(array_collection_name), LONG2FIX(ser->trait_index));
+            ser->trait_index++;
+            ser_write_byte(ser, 0x07); // Trait header
+            ser_write_byte(ser, 0x43); // utf8vr header
+            rb_str_buf_cat(ser->stream, array_collection_name, 33); // Class name
+        }
+        ser_write_byte(ser, AMF3_ARRAY_MARKER);
+    }
+
+    // Write header
+    int header = ((int)RARRAY_LEN(ary)) << 1 | 1;
+    ser_write_int(ser, header);
+    ser_write_byte(ser, AMF3_CLOSE_DYNAMIC_ARRAY);
+
+    // Write contents
+    long i, len = RARRAY_LEN(ary);
+    for(i = 0; i < len; i++) {
+        ser3_serialize(self, RARRAY_PTR(ary)[i]);
+    }
+
+    return self;
 }
 
 /*
@@ -594,17 +622,6 @@ static VALUE ser3_write_object0(VALUE self, VALUE obj, VALUE props, VALUE traits
     }
 
     return self;
-}
-
-/*
- * Writes the given object as an ArrayCollection
- */
-static VALUE ser3_write_array_collection(VALUE self, VALUE ary) {
-    VALUE traits = rb_hash_new();
-    rb_hash_aset(traits, sym_class_name, rb_str_new2("flex.messaging.io.ArrayCollection"));
-    rb_hash_aset(traits, sym_dynamic, Qfalse);
-    rb_hash_aset(traits, sym_externalizable, Qtrue);
-    return ser3_write_object0(self, ary, Qnil, traits);
 }
 
 /*
@@ -742,8 +759,6 @@ VALUE ser3_serialize(VALUE self, VALUE obj) {
         ser_write_byte(ser, AMF3_TRUE_MARKER);
     } else if(type == T_FALSE) {
         ser_write_byte(ser, AMF3_FALSE_MARKER);
-    } else if(klass == cArrayCollection) {
-        ser3_write_array_collection(self, obj);
     } else if(type == T_ARRAY) {
         ser3_write_array(self, obj);
     } else if(type == T_HASH) {
@@ -796,10 +811,11 @@ void Init_rocket_amf_serializer() {
     rb_define_method(cAMF3Serializer, "write_object", ser3_write_object, -1);
 
     // Get refs to commonly used symbols and ids
-    cArrayCollection = rb_const_get(rb_const_get(mRocketAMF, rb_intern("Values")), rb_intern("ArrayCollection"));
     id_size = rb_intern("size");
     id_haskey = rb_intern("has_key?");
     id_encode_amf = rb_intern("encode_amf");
+    id_is_array_collection = rb_intern("is_array_collection?");
+    id_use_array_collection = rb_intern("use_array_collection");
     id_get_as_class_name = rb_intern("get_as_class_name");
     id_props_for_serialization = rb_intern("props_for_serialization");
     id_utc = rb_intern("utc");

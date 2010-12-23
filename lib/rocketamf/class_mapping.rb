@@ -1,5 +1,4 @@
 require 'rocketamf/values/typed_hash'
-require 'rocketamf/values/array_collection'
 require 'rocketamf/values/messages'
 
 module RocketAMF
@@ -86,7 +85,6 @@ module RocketAMF
         map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'RocketAMF::Values::CommandMessage'
         map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'RocketAMF::Values::AcknowledgeMessage'
         map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'RocketAMF::Values::ErrorMessage'
-        map :as => 'flex.messaging.io.ArrayCollection', :ruby => 'RocketAMF::Values::ArrayCollection'
       end
 
       # Map a given AS class to a ruby class.
@@ -121,9 +119,14 @@ module RocketAMF
     # Array of custom object serializers.
     attr_reader :object_serializers
 
+    # Global configuration variable for sending Arrays as ArrayCollections. Defaults
+    # to false.
+    attr_accessor :use_array_collection
+
     def initialize #:nodoc:
       @object_populators = []
       @object_serializers = []
+      @use_array_collection = false
     end
 
     # Define class mappings in the block. Block is passed a MappingSet object as

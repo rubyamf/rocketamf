@@ -41,8 +41,7 @@ describe RocketAMF::ClassMapping do
       as_classes = [
         'flex.messaging.messages.AcknowledgeMessage',
         'flex.messaging.messages.CommandMessage',
-        'flex.messaging.messages.RemotingMessage',
-        'flex.messaging.io.ArrayCollection'
+        'flex.messaging.messages.RemotingMessage'
       ]
 
       as_classes.each do |as_class|
@@ -53,8 +52,7 @@ describe RocketAMF::ClassMapping do
     it "should map special classes from ruby by default" do
       ruby_classes = [
         'RocketAMF::Values::AcknowledgeMessage',
-        'RocketAMF::Values::ErrorMessage',
-        'RocketAMF::Values::ArrayCollection'
+        'RocketAMF::Values::ErrorMessage'
       ]
 
       ruby_classes.each do |obj|

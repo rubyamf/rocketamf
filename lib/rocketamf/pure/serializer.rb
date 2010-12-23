@@ -179,8 +179,6 @@ module RocketAMF
           write_date obj
         elsif obj.is_a?(StringIO)
           write_byte_array obj
-        elsif obj.is_a?(RocketAMF::Values::ArrayCollection)
-          write_array_collection obj
         elsif obj.is_a?(Array)
           write_array obj
         elsif obj.is_a?(Hash) || obj.is_a?(Object)
@@ -265,26 +263,45 @@ module RocketAMF
         end
       end
 
-      def write_array_collection array
-        write_object array, nil, {:class_name => RocketAMF::ClassMapper.get_as_class_name(array), :members => [], :externalizable => true, :dynamic => false}
-      end
-
       def write_array array
-        @stream << AMF3_ARRAY_MARKER
+        # Is it an array collection?
+        is_ac = false
+        if array.respond_to?(:is_array_collection?)
+          is_ac = array.is_array_collection?
+        else
+          is_ac = RocketAMF::ClassMapper.use_array_collection
+        end
+
+        # Write type marker
+        @stream << (is_ac ? AMF3_OBJECT_MARKER : AMF3_ARRAY_MARKER)
+
+        # Write reference or cache array
         if @object_cache[array] != nil
           write_reference @object_cache[array]
+          return
         else
-          # Cache array
           @object_cache.add_obj array
+        end
 
-          # Build AMF string
-          header = array.length << 1 # make room for a low bit of 1
-          header = header | 1 # set the low bit to 1
-          @stream << pack_integer(header)
-          @stream << AMF3_CLOSE_DYNAMIC_ARRAY
-          array.each do |elem|
-            serialize elem
+        # Write out traits and array marker if it's an array collection
+        if is_ac
+          class_name = "flex.messaging.io.ArrayCollection"
+          if @trait_cache[class_name] != nil
+            @stream << pack_integer(@trait_cache[class_name] << 2 | 0x01)
+          else
+            @stream << "\a" # Externalizable, non-dynamic
+            write_utf8_vr(class_name)
           end
+          @stream << AMF3_ARRAY_MARKER
+        end
+
+        # Build AMF string for array
+        header = array.length << 1 # make room for a low bit of 1
+        header = header | 1 # set the low bit to 1
+        @stream << pack_integer(header)
+        @stream << AMF3_CLOSE_DYNAMIC_ARRAY
+        array.each do |elem|
+          serialize elem
         end
       end
 

@@ -261,6 +261,14 @@ describe "when deserializing" do
         output.should == [h1, h2, so1, {:foo_three => nil}, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
       end
 
+      it "should deserialize an array collection as an array" do
+        input = object_fixture("amf3-arrayCollection.bin")
+        output = RocketAMF.deserialize(input, 3)
+
+        output.class.should == Array
+        output.should == ["foo", "bar"]
+      end
+
       it "should deserialize a byte array" do
         input = object_fixture("amf3-byteArray.bin")
         output = RocketAMF.deserialize(input, 3)

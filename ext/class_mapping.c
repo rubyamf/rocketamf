@@ -55,7 +55,6 @@ static VALUE mapset_alloc(VALUE klass) {
     st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.CommandMessage", rb_str_new2("RocketAMF::Values::CommandMessage"));
     st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.AcknowledgeMessage", rb_str_new2("RocketAMF::Values::AcknowledgeMessage"));
     st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.ErrorMessage", rb_str_new2("RocketAMF::Values::ErrorMessage"));
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.io.ArrayCollection", rb_str_new2("RocketAMF::Values::ArrayCollection"));
 
     st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::AbstractMessage", rb_str_new2("flex.messaging.messages.AbstractMessage"));
     st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::RemotingMessage", rb_str_new2("flex.messaging.messages.RemotingMessage"));
@@ -63,7 +62,6 @@ static VALUE mapset_alloc(VALUE klass) {
     st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::CommandMessage", rb_str_new2("flex.messaging.messages.CommandMessage"));
     st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::AcknowledgeMessage", rb_str_new2("flex.messaging.messages.AcknowledgeMessage"));
     st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::ErrorMessage", rb_str_new2("flex.messaging.messages.ErrorMessage"));
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::ArrayCollection", rb_str_new2("flex.messaging.io.ArrayCollection"));
 
     return self;
 }
@@ -145,6 +143,13 @@ static VALUE mapping_alloc(VALUE klass) {
     map->mapset = rb_class_new_instance(0, NULL, cFastMappingSet);
     map->prop_cache = st_init_numtable();
     return self;
+}
+
+/*
+ * Initialize class mapping object, setting use_class_mapping to false
+ */
+static VALUE mapping_init(VALUE self) {
+    rb_ivar_set(self, rb_intern("@use_array_collection"), Qfalse);
 }
 
 /*
@@ -349,6 +354,8 @@ void Init_rocket_amf_fast_class_mapping() {
     // Define FastClassMapping
     VALUE cFastClassMapping = rb_define_class_under(mRocketAMFExt, "FastClassMapping", rb_cObject);
     rb_define_alloc_func(cFastClassMapping, mapping_alloc);
+    rb_attr(cFastClassMapping, rb_intern("use_array_collection"), 1, 1, Qtrue);
+    rb_define_method(cFastClassMapping, "initialize", mapping_init, 0);
     rb_define_method(cFastClassMapping, "define", mapping_define, 0);
     rb_define_method(cFastClassMapping, "reset", mapping_reset, 0);
     rb_define_method(cFastClassMapping, "get_as_class_name", mapping_as_class_name, 1);

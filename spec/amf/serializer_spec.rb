@@ -269,6 +269,23 @@ describe "when serializing" do
         output.should == expected
       end
 
+      it "should serialize an array as an array collection" do
+        expected = object_fixture('amf3-arrayCollection.bin')
+
+        # Test global
+        RocketAMF::ClassMapper.use_array_collection = true
+        input = ["foo", "bar"]
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+        RocketAMF::ClassMapper.use_array_collection = false
+
+        # Test override
+        input = ["foo", "bar"]
+        input.is_array_collection = true
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
       it "should serialize a byte array" do
         expected = object_fixture("amf3-byteArray.bin")
         input = StringIO.new "\000\003これtest\100"

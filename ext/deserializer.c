@@ -477,6 +477,11 @@ static VALUE des3_read_object(VALUE self) {
             rb_ary_push(des->trait_cache, traits);
         }
 
+        // Optimization for deserializing ArrayCollection
+        if(strcmp(RSTRING_PTR(class_name), "flex.messaging.io.ArrayCollection") == 0) {
+            return des3_deserialize(self);
+        }
+
         VALUE obj = rb_funcall(class_mapper, id_get_ruby_obj, 1, class_name);
         rb_ary_push(des->obj_cache, obj);
 
