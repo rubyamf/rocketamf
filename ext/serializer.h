@@ -25,7 +25,7 @@ void ser_write_int(AMF_SERIALIZER *ser, int num);
 void ser_write_uint16(AMF_SERIALIZER *ser, long num);
 void ser_write_uint32(AMF_SERIALIZER *ser, long num);
 void ser_write_double(AMF_SERIALIZER *ser, double num);
-void ser_get_string(VALUE obj, char** str, long* len);
+void ser_get_string(VALUE obj, VALUE encode, char** str, long* len);
 
 VALUE ser0_serialize(VALUE self, VALUE obj);
 VALUE ser3_serialize(VALUE self, VALUE obj);

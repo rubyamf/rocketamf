@@ -259,7 +259,7 @@ module RocketAMF
           write_reference @object_cache[array]
         else
           @object_cache.add_obj array
-          write_utf8_vr array.string
+          write_utf8_vr array.string, false
         end
       end
 
@@ -377,8 +377,15 @@ module RocketAMF
       private
       include RocketAMF::Pure::WriteIOHelpers
 
-      def write_utf8_vr str
-        str = str.encode("UTF-8").force_encoding("ASCII-8BIT") if str.respond_to?(:encode)
+      def write_utf8_vr str, encode=true
+        if str.respond_to?(:encode)
+          if encode
+            str = str.encode("UTF-8")
+          else
+            str = str.dup if str.frozen?
+          end
+          str.force_encoding("ASCII-8BIT")
+        end
 
         if str == ''
           @stream << AMF3_EMPTY_STRING

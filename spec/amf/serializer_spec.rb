@@ -29,6 +29,11 @@ describe "when serializing" do
       output.should == object_fixture('amf0-string.bin')
     end
 
+    it "should serialize frozen strings" do
+      output = RocketAMF.serialize("this is a テスト".freeze, 0)
+      output.should == object_fixture('amf0-string.bin')
+    end
+
     it "should serialize arrays" do
       output = RocketAMF.serialize(['a', 'b', 'c', 'd'], 0)
       output.should == object_fixture('amf0-strict-array.bin')
@@ -155,6 +160,13 @@ describe "when serializing" do
       it "should serialize a simple string" do
         expected = object_fixture("amf3-string.bin")
         input = "String . String"
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
+      it "should serialize a frozen string" do
+        expected = object_fixture("amf3-string.bin")
+        input = "String . String".freeze
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
@@ -432,6 +444,13 @@ describe "when serializing" do
           expected = object_fixture("amf3-encodedStringRef.bin")
           output = RocketAMF.serialize([shift_str, utf_str], 3)
           output.should == expected
+        end
+
+        it "should handle inappropriate UTF-8 characters in byte arrays" do
+          str = "\xff\xff\xff".force_encoding("ASCII-8BIT")
+          str.freeze # For added amusement
+          output = RocketAMF.serialize(StringIO.new(str), 3)
+          output.should == "\x0c\x07\xff\xff\xff".force_encoding("ASCII-8BIT")
         end
       end
     end

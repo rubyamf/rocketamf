@@ -99,7 +99,7 @@ static VALUE env_serialize(VALUE self) {
         VALUE header = RARRAY_PTR(headers)[i];
 
         // Write header name
-        ser_get_string(rb_funcall(header, rb_intern("name"), 0), &str, &str_len);
+        ser_get_string(rb_funcall(header, rb_intern("name"), 0), Qtrue, &str, &str_len);
         ser_write_uint16(ser, str_len);
         rb_str_buf_cat(ser->stream, str, str_len);
 
@@ -118,12 +118,12 @@ static VALUE env_serialize(VALUE self) {
         VALUE message = RARRAY_PTR(messages)[i];
 
         // Write target_uri
-        ser_get_string(rb_funcall(message, rb_intern("target_uri"), 0), &str, &str_len);
+        ser_get_string(rb_funcall(message, rb_intern("target_uri"), 0), Qtrue, &str, &str_len);
         ser_write_uint16(ser, str_len);
         rb_str_buf_cat(ser->stream, str, str_len);
 
         // Write response_uri
-        ser_get_string(rb_funcall(message, rb_intern("response_uri"), 0), &str, &str_len);
+        ser_get_string(rb_funcall(message, rb_intern("response_uri"), 0), Qtrue, &str, &str_len);
         ser_write_uint16(ser, str_len);
         rb_str_buf_cat(ser->stream, str, str_len);
 

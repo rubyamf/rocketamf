@@ -119,14 +119,16 @@ void ser_write_double(AMF_SERIALIZER *ser, double num) {
 #endif
 }
 
-void ser_get_string(VALUE obj, char** str, long* len) {
+void ser_get_string(VALUE obj, VALUE encode, char** str, long* len) {
     int type = TYPE(obj);
     if(type == T_STRING) {
 #ifdef HAVE_RB_STR_ENCODE
-        rb_encoding *enc = rb_enc_get(obj);
-        if (enc != rb_ascii8bit_encoding()) {
-            rb_encoding *utf8 = rb_utf8_encoding();
-            if (enc != utf8) obj = rb_str_encode(obj, rb_enc_from_encoding(utf8), 0, Qnil);
+        if(encode == Qtrue) {
+            rb_encoding *enc = rb_enc_get(obj);
+            if (enc != rb_ascii8bit_encoding()) {
+                rb_encoding *utf8 = rb_utf8_encoding();
+                if (enc != utf8) obj = rb_str_encode(obj, rb_enc_from_encoding(utf8), 0, Qnil);
+            }
         }
 #endif
         *str = RSTRING_PTR(obj);
@@ -193,7 +195,7 @@ static void ser0_write_string(AMF_SERIALIZER *ser, VALUE obj, VALUE write_marker
     // Extract char array and length from object
     char* str;
     long len;
-    ser_get_string(obj, &str, &len);
+    ser_get_string(obj, Qtrue, &str, &len);
 
     // Write string
     if(len > 0xffff) {
@@ -402,11 +404,11 @@ static VALUE ser3_version(VALUE self) {
  * Writes an AMF3 style string. Accepts strings, symbols, and nil, and handles
  * all the necessary encoding and caching.
  */
-static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj, VALUE cache) {
+static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj, VALUE encode, VALUE cache) {
     // Extract char array and length from object
     char* str;
     long len;
-    ser_get_string(obj, &str, &len);
+    ser_get_string(obj, encode, &str, &len);
 
     // Write string
     VALUE str_index;
@@ -497,7 +499,7 @@ static int ser3_hash_iter(VALUE key, VALUE val, ITER_ARGS *args) {
 
     if(args->extra == Qnil || rb_funcall(args->extra, id_haskey, 1, key) == Qfalse) {
         // Write key and value
-        ser3_write_utf8vr(ser, key, Qtrue);
+        ser3_write_utf8vr(ser, key, Qtrue, Qtrue);
         ser3_serialize(args->ser, val);
     }
     return ST_CONTINUE;
@@ -571,11 +573,11 @@ static VALUE ser3_write_object0(VALUE self, VALUE obj, VALUE props, VALUE traits
         ser_write_int(ser, header);
 
         // Write class name
-        ser3_write_utf8vr(ser, class_name, Qtrue);
+        ser3_write_utf8vr(ser, class_name, Qtrue, Qtrue);
 
         // Write out members
         for(i = 0; i < members_len; i++) {
-            ser3_write_utf8vr(ser, RARRAY_PTR(members)[i], Qtrue);
+            ser3_write_utf8vr(ser, RARRAY_PTR(members)[i], Qtrue, Qtrue);
         }
     }
 
@@ -705,7 +707,7 @@ static VALUE ser3_write_byte_array(VALUE self, VALUE ba) {
     }
 
     // Write byte array
-    ser3_write_utf8vr(ser, rb_funcall(ba, rb_intern("string"), 0), Qfalse);
+    ser3_write_utf8vr(ser, rb_funcall(ba, rb_intern("string"), 0), Qfalse, Qfalse);
 }
 
 VALUE ser3_serialize(VALUE self, VALUE obj) {
@@ -733,7 +735,7 @@ VALUE ser3_serialize(VALUE self, VALUE obj) {
         rb_funcall(obj, id_encode_amf, 1, self);
     } else if(type == T_STRING || type == T_SYMBOL) {
         ser_write_byte(ser, AMF3_STRING_MARKER);
-        ser3_write_utf8vr(ser, obj, Qtrue);
+        ser3_write_utf8vr(ser, obj, Qtrue, Qtrue);
     } else if(type == T_FIXNUM) {
         long tmp_num = FIX2LONG(obj);
         if(tmp_num < MIN_INTEGER || tmp_num > MAX_INTEGER) {
