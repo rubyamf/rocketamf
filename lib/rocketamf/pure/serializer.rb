@@ -286,8 +286,9 @@ module RocketAMF
         # Write out traits and array marker if it's an array collection
         if is_ac
           class_name = "flex.messaging.io.ArrayCollection"
-          if @trait_cache[class_name] != nil
-            @stream << pack_integer(@trait_cache[class_name] << 2 | 0x01)
+          traits = {:class_name => class_name}
+          if @trait_cache[traits] != nil
+            @stream << pack_integer(@trait_cache[traits] << 2 | 0x01)
           else
             @stream << "\a" # Externalizable, non-dynamic
             write_utf8_vr(class_name)
