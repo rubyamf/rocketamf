@@ -469,8 +469,7 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
             st_add_direct(ser->trait_cache, (st_data_t)strdup(array_collection_name), LONG2FIX(ser->trait_index));
             ser->trait_index++;
             ser_write_byte(ser, 0x07); // Trait header
-            ser_write_byte(ser, 0x43); // utf8vr header
-            rb_str_buf_cat(ser->stream, array_collection_name, 33); // Class name
+            ser3_write_utf8vr(ser, rb_str_new2(array_collection_name), Qfalse, Qtrue);
         }
         ser_write_byte(ser, AMF3_ARRAY_MARKER);
     }

@@ -150,7 +150,7 @@ module RocketAMF
       def initialize
         @string_cache = SerializerCache.new :string
         @object_cache = SerializerCache.new :object
-        @trait_cache = SerializerCache.new :trait
+        @trait_cache = SerializerCache.new :string
         @stream = ""
       end
 
@@ -286,10 +286,10 @@ module RocketAMF
         # Write out traits and array marker if it's an array collection
         if is_ac
           class_name = "flex.messaging.io.ArrayCollection"
-          traits = {:class_name => class_name}
-          if @trait_cache[traits] != nil
-            @stream << pack_integer(@trait_cache[traits] << 2 | 0x01)
+          if @trait_cache[class_name] != nil
+            @stream << pack_integer(@trait_cache[class_name] << 2 | 0x01)
           else
+            @trait_cache.add_obj class_name
             @stream << "\a" # Externalizable, non-dynamic
             write_utf8_vr(class_name)
           end
@@ -325,12 +325,13 @@ module RocketAMF
                     :dynamic => true
                    }
         end
+        class_name = traits[:class_name]
 
         # Write out traits
-        if traits[:class_name] && @trait_cache[traits] != nil
-          @stream << pack_integer(@trait_cache[traits] << 2 | 0x01)
+        if class_name && @trait_cache[class_name] != nil
+          @stream << pack_integer(@trait_cache[class_name] << 2 | 0x01)
         else
-          @trait_cache.add_obj traits if traits[:class_name]
+          @trait_cache.add_obj class_name if class_name
 
           # Write out trait header
           header = 0x03 # Not object ref and not trait ref
@@ -340,7 +341,7 @@ module RocketAMF
           @stream << pack_integer(header)
 
           # Write out class name
-          write_utf8_vr(traits[:class_name].to_s)
+          write_utf8_vr(class_name.to_s)
 
           # Write out members
           traits[:members].each {|m| write_utf8_vr(m)}
@@ -410,8 +411,6 @@ module RocketAMF
           StringCache.new
         elsif type == :object
           ObjectCache.new
-        elsif type == :trait
-          TraitCache.new
         end
       end
 
@@ -437,21 +436,6 @@ module RocketAMF
 
         def add_obj obj
           self[obj.object_id] = @cache_index
-          @cache_index += 1
-        end
-      end
-
-      class TraitCache < Hash #:nodoc:
-        def initialize
-          @cache_index = 0
-        end
-
-        def [] obj
-          super(obj[:class_name])
-        end
-
-        def add_obj obj
-          self[obj[:class_name]] = @cache_index
           @cache_index += 1
         end
       end
