@@ -259,7 +259,9 @@ module RocketAMF
           write_reference @object_cache[array]
         else
           @object_cache.add_obj array
-          write_utf8_vr array.string, false
+          str = array.string
+          @stream << pack_integer(str.bytesize << 1 | 1)
+          @stream << str
         end
       end
 
@@ -397,9 +399,7 @@ module RocketAMF
           @string_cache.add_obj str
 
           # Build AMF string
-          header = str.bytesize << 1 # make room for a low bit of 1
-          header = header | 1 # set the low bit to 1
-          @stream << pack_integer(header)
+          @stream << pack_integer(str.bytesize << 1 | 1)
           @stream << str
         end
       end
