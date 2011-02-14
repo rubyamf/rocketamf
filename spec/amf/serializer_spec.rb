@@ -8,6 +8,12 @@ describe "when serializing" do
     RocketAMF::ClassMapper.reset
   end
 
+  it "should raise exception with invalid version number" do
+    lambda {
+      RocketAMF.serialize("", 5)
+    }.should raise_error("unsupported version 5")
+  end
+
   describe "AMF0" do
     it "should serialize nils" do
       output = RocketAMF.serialize(nil, 0)

@@ -7,6 +7,12 @@ describe "when deserializing" do
     RocketAMF::ClassMapper.reset
   end
 
+  it "should raise exception with invalid version number" do
+    lambda {
+      RocketAMF.deserialize("", 5)
+    }.should raise_error("unsupported version 5")
+  end
+
   describe "AMF0" do
     it "should update source pos if source is a StringIO object" do
       input = StringIO.new(object_fixture('amf0-number.bin'))

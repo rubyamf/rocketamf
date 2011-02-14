@@ -10,13 +10,9 @@ module RocketAMF
   end
 
   #:stopdoc:
-  # Import deserializer
+  # Import serializer/deserializer
   Deserializer = RocketAMF::Pure::Deserializer
-  AMF3Deserializer = RocketAMF::Pure::AMF3Deserializer
-
-  # Import serializer
   Serializer = RocketAMF::Pure::Serializer
-  AMF3Serializer = RocketAMF::Pure::AMF3Serializer
 
   # Modify envelope so it can serialize/deserialize
   class Envelope

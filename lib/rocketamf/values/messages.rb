@@ -123,7 +123,7 @@ module RocketAMF
             :faultDetail => @faultDetail,
             :faultString => @faultString
           }
-          serializer.write_hash(data)
+          serializer.write_object(data)
         else
           serializer.write_object(self)
         end

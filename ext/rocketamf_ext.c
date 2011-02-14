@@ -3,9 +3,7 @@
 VALUE mRocketAMF;
 VALUE mRocketAMFExt;
 VALUE cDeserializer;
-VALUE cAMF3Deserializer;
 VALUE cSerializer;
-VALUE cAMF3Serializer;
 VALUE cStringIO;
 VALUE cDate;
 VALUE cDateTime;

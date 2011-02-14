@@ -49,13 +49,13 @@ class ExternalizableTest
     serializer.write_object(self, nil, {:class_name => 'ExternalizableTest', :dynamic => false, :externalizable => true, :members => []})
   end
 
-  def read_external des
-    @one = read_double(des.source)
-    @two = read_double(des.source)
+  def read_external source
+    @one = read_double(source)
+    @two = read_double(source)
   end
 
-  def write_external ser
-    ser.stream << pack_double(@one)
-    ser.stream << pack_double(@two)
+  def write_external stream
+    stream << pack_double(@one)
+    stream << pack_double(@two)
   end
 end
