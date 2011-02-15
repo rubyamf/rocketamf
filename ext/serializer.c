@@ -158,22 +158,17 @@ static void ser0_write_string(AMF_SERIALIZER *ser, VALUE obj, VALUE write_marker
     rb_str_buf_cat(ser->stream, str, len);
 }
 
-typedef struct {
-    VALUE ser;
-    VALUE extra;
-} ITER_ARGS;
-
 /*
  * Hash iterator for object properties that writes the key and then serializes
  * the value
  */
-static int ser0_hash_iter(VALUE key, VALUE val, ITER_ARGS *args) {
+static int ser0_hash_iter(VALUE key, VALUE val, const VALUE args[1]) {
     AMF_SERIALIZER *ser;
-    Data_Get_Struct(args->ser, AMF_SERIALIZER, ser);
+    Data_Get_Struct(args[0], AMF_SERIALIZER, ser);
 
     // Write key and value
     ser0_write_string(ser, key, Qfalse); // Technically incorrect if key length is longer than a 16 bit string, but if you run into that you're screwed anyways
-    ser0_serialize(args->ser, val);
+    ser0_serialize(args[0], val);
 
     return ST_CONTINUE;
 }
@@ -214,18 +209,17 @@ static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
     }
 
     // Write out data
-    ITER_ARGS args;
-    args.ser = self;
+    VALUE args[1] = {self};
 #ifdef SORT_PROPS
     // Sort is required prior to Ruby 1.9 to pass all the tests, as Ruby 1.8 hashes don't store insert order
     VALUE sorted_props = rb_funcall(props, rb_intern("sort"), 0);
     long i, len = RARRAY_LEN(sorted_props);
     for(i = 0; i < len; i++) {
         VALUE pair = RARRAY_PTR(sorted_props)[i];
-        ser0_hash_iter(RARRAY_PTR(pair)[0], RARRAY_PTR(pair)[1], &args);
+        ser0_hash_iter(RARRAY_PTR(pair)[0], RARRAY_PTR(pair)[1], args);
     }
 #else
-    rb_hash_foreach(props, ser0_hash_iter, (st_data_t)&args);
+    rb_hash_foreach(props, ser0_hash_iter, (st_data_t)args);
 #endif
 
     ser_write_uint16(ser, 0);
@@ -398,14 +392,14 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
  * AMF3 property hash write iterator. Checks the args->extra hash, if given,
  * and skips properties that are keys in that hash.
  */
-static int ser3_hash_iter(VALUE key, VALUE val, ITER_ARGS *args) {
+static int ser3_hash_iter(VALUE key, VALUE val, const VALUE args[2]) {
     AMF_SERIALIZER *ser;
-    Data_Get_Struct(args->ser, AMF_SERIALIZER, ser);
+    Data_Get_Struct(args[0], AMF_SERIALIZER, ser);
 
-    if(args->extra == Qnil || rb_funcall(args->extra, id_haskey, 1, key) == Qfalse) {
+    if(args[1] == Qnil || rb_funcall(args[1], id_haskey, 1, key) == Qfalse) {
         // Write key and value
         ser3_write_utf8vr(ser, key);
-        ser3_serialize(args->ser, val);
+        ser3_serialize(args[0], val);
     }
     return ST_CONTINUE;
 }
@@ -506,18 +500,16 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
 
     // Write dynamic properties
     if(dynamic == Qtrue) {
-        ITER_ARGS args;
-        args.ser = self;
-        args.extra = skipped_members;
+        VALUE args[2] = {self, skipped_members};
 #ifdef SORT_PROPS
         // Sort is required prior to Ruby 1.9 to pass all the tests, as Ruby 1.8 hashes don't store insert order
         VALUE sorted_props = rb_funcall(props, rb_intern("sort"), 0);
         for(i = 0; i < RARRAY_LEN(sorted_props); i++) {
             VALUE pair = RARRAY_PTR(sorted_props)[i];
-            ser3_hash_iter(RARRAY_PTR(pair)[0], RARRAY_PTR(pair)[1], &args);
+            ser3_hash_iter(RARRAY_PTR(pair)[0], RARRAY_PTR(pair)[1], args);
         }
 #else
-        rb_hash_foreach(props, ser3_hash_iter, (st_data_t)&args);
+        rb_hash_foreach(props, ser3_hash_iter, (st_data_t)args);
 #endif
 
         ser_write_byte(ser, AMF3_CLOSE_DYNAMIC_OBJECT);

@@ -10,6 +10,7 @@ ID id_hashset;
 
 typedef struct {
     VALUE mapset;
+    st_table* setter_cache;
     st_table* prop_cache;
 } CLASS_MAPPING;
 
@@ -129,6 +130,7 @@ static void mapping_mark(CLASS_MAPPING *map) {
  * Free prop cache table and struct
  */
 static void mapping_free(CLASS_MAPPING *map) {
+    st_free_table(map->setter_cache);
     st_free_table(map->prop_cache);
     xfree(map);
 }
@@ -141,6 +143,7 @@ static VALUE mapping_alloc(VALUE klass) {
     memset(map, 0, sizeof(CLASS_MAPPING));
     VALUE self = Data_Wrap_Struct(klass, mapping_mark, mapping_free, map);
     map->mapset = rb_class_new_instance(0, NULL, cFastMappingSet);
+    map->setter_cache = st_init_numtable();
     map->prop_cache = st_init_numtable();
     return self;
 }
@@ -248,24 +251,38 @@ static VALUE mapping_get_ruby_obj(VALUE self, VALUE name) {
 /*
  * st_table iterator for populating a given object from a property hash
  */
-static int mapping_populate_iter(VALUE key, VALUE val, VALUE obj) {
+static int mapping_populate_iter(VALUE key, VALUE val, const VALUE args[2]) {
+    CLASS_MAPPING *map;
+    Data_Get_Struct(args[0], CLASS_MAPPING, map);
+    VALUE obj = args[1];
+
     if(TYPE(obj) == T_HASH) {
         rb_hash_aset(obj, key, val);
         return ST_CONTINUE;
     }
 
     if(TYPE(key) != T_SYMBOL) rb_raise(rb_eArgError, "Invalid type for property key: %d", TYPE(key));
-    const char* key_str = rb_id2name(SYM2ID(key));
-    long len = strlen(key_str);
-    char* setter = ALLOC_N(char, len+2);
-    memcpy(setter, key_str, len);
-    setter[len] = '=';
-    setter[len+1] = '\0';
-    ID id_setter = rb_intern(setter);
-    xfree(setter);
 
-    if(rb_respond_to(obj, id_setter)) {
-        rb_funcall(obj, id_setter, 1, val);
+    // Calculate symbol for setter function
+    ID key_id = SYM2ID(key);
+    ID setter_id;
+    if(!st_lookup(map->setter_cache, key_id, &setter_id)) {
+        // Calculate symbol
+        const char* key_str = rb_id2name(key_id);
+        long len = strlen(key_str);
+        char* setter = ALLOC_N(char, len+2);
+        memcpy(setter, key_str, len);
+        setter[len] = '=';
+        setter[len+1] = '\0';
+        setter_id = rb_intern(setter);
+        xfree(setter);
+
+        // Store it
+        st_add_direct(map->setter_cache, key_id, setter_id);
+    }
+
+    if(rb_respond_to(obj, setter_id)) {
+        rb_funcall(obj, setter_id, 1, val);
     } else if(rb_respond_to(obj, id_hashset)) {
         rb_funcall(obj, id_hashset, 2, key, val);
     }
@@ -285,9 +302,10 @@ static VALUE mapping_populate(int argc, VALUE *argv, VALUE self) {
     VALUE obj, props, dynamic_props;
     rb_scan_args(argc, argv, "21", &obj, &props, &dynamic_props);
 
-    st_foreach(RHASH_TBL(props), mapping_populate_iter, obj);
+    VALUE args[2] = {self, obj};
+    st_foreach(RHASH_TBL(props), mapping_populate_iter, (st_data_t)args);
     if(dynamic_props != Qnil) {
-        st_foreach(RHASH_TBL(dynamic_props), mapping_populate_iter, obj);
+        st_foreach(RHASH_TBL(dynamic_props), mapping_populate_iter, (st_data_t)args);
     }
 
     return obj;
