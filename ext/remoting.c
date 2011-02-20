@@ -14,12 +14,20 @@ ID id_headers;
 ID id_messages;
 ID id_data;
 
-static VALUE env_populate_from_stream(VALUE self, VALUE src) {
-    int i;
-    VALUE args[3];
+static VALUE env_populate_from_stream(int argc, VALUE *argv, VALUE self) {
+    static VALUE cClassMapper = 0;
+    if(cClassMapper == 0) cClassMapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
+
+    // Parse args
+    VALUE src;
+    VALUE class_mapper;
+    rb_scan_args(argc, argv, "11", &src, &class_mapper);
+    if(class_mapper == Qnil) class_mapper = rb_class_new_instance(0, NULL, cClassMapper);
 
     // Create AMF0 deserializer
-    VALUE des_rb = rb_class_new_instance(0, NULL, cDeserializer);
+    VALUE args[3];
+    args[0] = class_mapper;
+    VALUE des_rb = rb_class_new_instance(1, args, cDeserializer);
     AMF_DESERIALIZER *des;
     Data_Get_Struct(des_rb, AMF_DESERIALIZER, des);
     des_set_src(des, src);
@@ -30,6 +38,7 @@ static VALUE env_populate_from_stream(VALUE self, VALUE src) {
     // Read headers
     VALUE headers = rb_hash_new();
     int header_cnt = des_read_uint16(des);
+    int i;
     for(i = 0; i < header_cnt; i++) {
         VALUE name = des_read_string(des, des_read_uint16(des));
         VALUE must_understand = des_read_byte(des) != 0 ? Qtrue : Qfalse;
@@ -70,10 +79,14 @@ static VALUE env_populate_from_stream(VALUE self, VALUE src) {
     return self;
 }
 
-static VALUE env_serialize(VALUE self) {
-    int i;
-    char *str;
-    long str_len;
+static VALUE env_serialize(int argc, VALUE *argv, VALUE self) {
+    static VALUE cClassMapper = 0;
+    if(cClassMapper == 0) cClassMapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
+
+    // Parse args
+    VALUE class_mapper;
+    rb_scan_args(argc, argv, "01", &class_mapper);
+    if(class_mapper == Qnil) class_mapper = rb_class_new_instance(0, NULL, cClassMapper);
 
     // Get instance variables
     long amf_ver = FIX2LONG(rb_ivar_get(self, id_amf_version));
@@ -81,7 +94,8 @@ static VALUE env_serialize(VALUE self) {
     VALUE messages = rb_ivar_get(self, id_messages);
 
     // Create AMF0 serializer
-    VALUE ser_rb = rb_class_new_instance(0, NULL, cSerializer);
+    VALUE args[1] = {class_mapper};
+    VALUE ser_rb = rb_class_new_instance(1, args, cSerializer);
     AMF_SERIALIZER *ser;
     Data_Get_Struct(ser_rb, AMF_SERIALIZER, ser);
 
@@ -91,6 +105,9 @@ static VALUE env_serialize(VALUE self) {
     // Write headers
     long header_cnt = RARRAY_LEN(headers);
     ser_write_uint16(ser, header_cnt);
+    int i;
+    char *str;
+    long str_len;
     for(i = 0; i < header_cnt; i++) {
         VALUE header = RARRAY_PTR(headers)[i];
 
@@ -139,8 +156,8 @@ static VALUE env_serialize(VALUE self) {
 
 void Init_rocket_amf_remoting() {
     VALUE mEnvelope = rb_define_module_under(mRocketAMFExt, "Envelope");
-    rb_define_method(mEnvelope, "populate_from_stream", env_populate_from_stream, 1);
-    rb_define_method(mEnvelope, "serialize", env_serialize, 0);
+    rb_define_method(mEnvelope, "populate_from_stream", env_populate_from_stream, -1);
+    rb_define_method(mEnvelope, "serialize", env_serialize, -1);
 
     // Get refs to commonly used symbols and ids
     id_amf_version = rb_intern("@amf_version");

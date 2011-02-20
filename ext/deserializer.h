@@ -5,6 +5,7 @@
 
 typedef struct {
     int version;
+    VALUE class_mapper;
     VALUE src;
     char* stream;
     long pos;

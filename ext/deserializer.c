@@ -187,18 +187,15 @@ static VALUE des0_read_object(AMF_DESERIALIZER *des) {
 }
 
 static VALUE des0_read_typed_object(AMF_DESERIALIZER *des) {
-    static VALUE class_mapper = 0;
-    if(class_mapper == 0) class_mapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
-
     // Create object and add to cache
     VALUE class_name = des_read_string(des, des_read_uint16(des));
-    VALUE obj = rb_funcall(class_mapper, id_get_ruby_obj, 1, class_name);
+    VALUE obj = rb_funcall(des->class_mapper, id_get_ruby_obj, 1, class_name);
     rb_ary_push(des->obj_cache, obj);
 
     // Populate object
     VALUE props = rb_hash_new();
     des0_read_props(des, props, des_read_sym);
-    rb_funcall(class_mapper, id_populate_ruby_obj, 2, obj, props);
+    rb_funcall(des->class_mapper, id_populate_ruby_obj, 2, obj, props);
 
     return obj;
 }
@@ -323,9 +320,6 @@ static VALUE des3_read_xml(AMF_DESERIALIZER *des) {
 }
 
 static VALUE des3_read_object(AMF_DESERIALIZER *des) {
-    static VALUE class_mapper = 0;
-    if(class_mapper == 0) class_mapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
-
     int header = des_read_int(des);
     if((header & 1) == 0) {
         header >>= 1;
@@ -368,7 +362,7 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
             return des3_deserialize(des);
         }
 
-        VALUE obj = rb_funcall(class_mapper, id_get_ruby_obj, 1, class_name);
+        VALUE obj = rb_funcall(des->class_mapper, id_get_ruby_obj, 1, class_name);
         rb_ary_push(des->obj_cache, obj);
 
         if(externalizable == Qtrue) {
@@ -393,7 +387,7 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
             }
         }
 
-        rb_funcall(class_mapper, id_populate_ruby_obj, 3, obj, props, dynamic_props);
+        rb_funcall(des->class_mapper, id_populate_ruby_obj, 3, obj, props, dynamic_props);
 
         return obj;
     }
@@ -557,6 +551,7 @@ static VALUE des3_deserialize(AMF_DESERIALIZER *des) {
  */
 static void des_mark(AMF_DESERIALIZER *des) {
     if(!des) return;
+    rb_gc_mark(des->class_mapper);
     rb_gc_mark(des->src);
     if(des->obj_cache) rb_gc_mark(des->obj_cache);
     if(des->str_cache) rb_gc_mark(des->str_cache);
@@ -578,6 +573,16 @@ static VALUE des_alloc(VALUE klass) {
     AMF_DESERIALIZER *des = ALLOC(AMF_DESERIALIZER);
     memset(des, 0, sizeof(AMF_DESERIALIZER));
     return Data_Wrap_Struct(klass, des_mark, des_free, des);
+}
+
+/*
+ * Initializer
+ */
+static VALUE des_initialize(VALUE self, VALUE class_mapper) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+    des->class_mapper = class_mapper;
+    return self;
 }
 
 /*
@@ -637,6 +642,7 @@ void Init_rocket_amf_deserializer() {
     // Define Deserializer
     cDeserializer = rb_define_class_under(mRocketAMFExt, "Deserializer", rb_cObject);
     rb_define_alloc_func(cDeserializer, des_alloc);
+    rb_define_method(cDeserializer, "initialize", des_initialize, 1);
     rb_define_method(cDeserializer, "source", des_source, 0);
     rb_define_method(cDeserializer, "deserialize", des_deserialize, 2);
 

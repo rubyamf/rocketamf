@@ -180,8 +180,6 @@ static int ser0_hash_iter(VALUE key, VALUE val, const VALUE args[1]) {
  * not pass typically on Ruby 1.8.
  */
 static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
-    static VALUE class_mapper = 0;
-    if(class_mapper == 0) class_mapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -192,11 +190,11 @@ static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
 
     // Make a request for props hash unless we already have it
     if(props == Qnil) {
-        props = rb_funcall(class_mapper, id_props_for_serialization, 1, obj);
+        props = rb_funcall(ser->class_mapper, id_props_for_serialization, 1, obj);
     }
 
     // Write header
-    VALUE class_name = rb_funcall(class_mapper, id_get_as_class_name, 1, obj);
+    VALUE class_name = rb_funcall(ser->class_mapper, id_get_as_class_name, 1, obj);
     if(class_name != Qnil) {
         ser_write_byte(ser, AMF0_TYPED_OBJECT_MARKER);
         ser0_write_string(ser, class_name, Qfalse);
@@ -332,8 +330,6 @@ static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj) {
  * Writes the given array using AMF3 notation
  */
 static VALUE ser3_write_array(VALUE self, VALUE ary) {
-    static VALUE class_mapper = 0;
-    if(class_mapper == 0) class_mapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -342,7 +338,7 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
     if(rb_respond_to(ary, id_is_array_collection)) {
         is_ac = rb_funcall(ary, id_is_array_collection, 0);
     } else {
-        is_ac = rb_funcall(class_mapper, id_use_array_collection, 0);
+        is_ac = rb_funcall(ser->class_mapper, id_use_array_collection, 0);
     }
 
     // Write type marker
@@ -413,8 +409,6 @@ static int ser3_hash_iter(VALUE key, VALUE val, const VALUE args[2]) {
  * defined members.
  */
 static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits) {
-    static VALUE class_mapper = 0;
-    if(class_mapper == 0) class_mapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
     long i;
@@ -440,7 +434,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     VALUE dynamic = Qtrue;
     VALUE externalizable = Qfalse;
     if(traits == Qnil) {
-        class_name = rb_funcall(class_mapper, id_get_as_class_name, 1, obj);
+        class_name = rb_funcall(ser->class_mapper, id_get_as_class_name, 1, obj);
     } else {
         class_name = rb_hash_aref(traits, sym_class_name);
         members = rb_hash_aref(traits, sym_members);
@@ -488,7 +482,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
 
     // Make a request for props hash unless we already have it
     if(props == Qnil) {
-        props = rb_funcall(class_mapper, id_props_for_serialization, 1, obj);
+        props = rb_funcall(ser->class_mapper, id_props_for_serialization, 1, obj);
     }
 
     // Write sealed members
@@ -652,6 +646,7 @@ static VALUE ser3_serialize(VALUE self, VALUE obj) {
  */
 static void ser_mark(AMF_SERIALIZER *ser) {
     if(!ser) return;
+    rb_gc_mark(ser->class_mapper);
     rb_gc_mark(ser->stream);
 }
 
@@ -678,10 +673,11 @@ static VALUE ser_alloc(VALUE klass) {
 /*
  * Initializer
  */
-static VALUE ser_initialize(VALUE self) {
+static VALUE ser_initialize(VALUE self, VALUE class_mapper) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
+    ser->class_mapper = class_mapper;
     ser->depth = 0;
     ser->stream = rb_str_buf_new(0);
 
@@ -810,7 +806,7 @@ void Init_rocket_amf_serializer() {
     // Define Serializer
     cSerializer = rb_define_class_under(mRocketAMFExt, "Serializer", rb_cObject);
     rb_define_alloc_func(cSerializer, ser_alloc);
-    rb_define_method(cSerializer, "initialize", ser_initialize, 0);
+    rb_define_method(cSerializer, "initialize", ser_initialize, 1);
     rb_define_method(cSerializer, "version", ser_version, 0);
     rb_define_method(cSerializer, "stream", ser_stream, 0);
     rb_define_method(cSerializer, "serialize", ser_serialize, 2);
