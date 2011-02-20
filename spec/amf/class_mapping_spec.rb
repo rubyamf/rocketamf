@@ -2,15 +2,18 @@ require "spec_helper.rb"
 
 describe RocketAMF::ClassMapping do
   before :each do
-    @mapper = RocketAMF::ClassMapping.new
-    @mapper.define do |m|
+    RocketAMF::ClassMapping.reset
+    RocketAMF::ClassMapping.define do |m|
       m.map :as => 'ASClass', :ruby => 'ClassMappingTest'
     end
+    @mapper = RocketAMF::ClassMapping.new
   end
 
   describe "class name mapping" do
     it "should allow resetting of mappings back to defaults" do
-      @mapper.reset
+      @mapper.get_as_class_name('ClassMappingTest').should_not be_nil
+      RocketAMF::ClassMapping.reset
+      @mapper = RocketAMF::ClassMapping.new
       @mapper.get_as_class_name('ClassMappingTest').should be_nil
       @mapper.get_as_class_name('RocketAMF::Values::AcknowledgeMessage').should_not be_nil
     end
@@ -27,7 +30,8 @@ describe RocketAMF::ClassMapping do
     end
 
     it "should properly instantiate namespaced classes" do
-      @mapper.define {|m| m.map :as => 'ASClass', :ruby => 'ANamespace::TestRubyClass'}
+      RocketAMF::ClassMapping.mappings.map :as => 'ASClass', :ruby => 'ANamespace::TestRubyClass'
+      @mapper = RocketAMF::ClassMapping.new
       @mapper.get_ruby_obj('ASClass').should be_a(ANamespace::TestRubyClass)
     end
 
@@ -61,9 +65,8 @@ describe RocketAMF::ClassMapping do
     end
 
     it "should allow config modification" do
-      @mapper.define do |m|
-        m.map :as => 'SecondClass', :ruby => 'ClassMappingTest'
-      end
+      RocketAMF::ClassMapping.mappings.map :as => 'SecondClass', :ruby => 'ClassMappingTest'
+      @mapper = RocketAMF::ClassMapping.new
       @mapper.get_as_class_name(ClassMappingTest.new).should == 'SecondClass'
     end
   end
@@ -76,24 +79,6 @@ describe RocketAMF::ClassMapping do
 
     it "should populate a typed hash" do
       obj = @mapper.populate_ruby_obj RocketAMF::Values::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
-      obj[:prop_a].should == 'Data'
-    end
-
-    it "should allow custom populators" do
-      class CustomPopulator
-        def can_handle? obj
-          true
-        end
-        def populate obj, props, dynamic_props
-          obj[:populated] = true
-          obj.merge! props
-          obj.merge! dynamic_props if dynamic_props
-        end
-      end
-
-      @mapper.object_populators << CustomPopulator.new
-      obj = @mapper.populate_ruby_obj({}, {:prop_a => 'Data'})
-      obj[:populated].should == true
       obj[:prop_a].should == 'Data'
     end
   end
@@ -120,20 +105,6 @@ describe RocketAMF::ClassMapping do
 
       hash = @mapper.props_for_serialization obj
       hash.should == {'prop_a' => 'Test A', 'prop_b' => nil, 'prop_c' => 'Test C'}
-    end
-
-    it "should allow custom serializers" do
-      class CustomSerializer
-        def can_handle? obj
-          true
-        end
-        def serialize obj
-          {:success => true}
-        end
-      end
-
-      @mapper.object_serializers << CustomSerializer.new
-      @mapper.props_for_serialization(nil).should == {:success => true}
     end
   end
 end

@@ -6,7 +6,8 @@ module RocketAMF
     class Serializer
       attr_reader :stream, :version
 
-      def initialize
+      def initialize class_mapper
+        @class_mapper = class_mapper
         @stream = ""
         @depth = 0
       end
@@ -149,10 +150,10 @@ module RocketAMF
       def amf0_write_object obj, props=nil
         @ref_cache.add_obj obj
 
-        props = RocketAMF::ClassMapper.props_for_serialization obj if props.nil?
+        props = @class_mapper.props_for_serialization obj if props.nil?
 
         # Is it a typed object?
-        class_name = RocketAMF::ClassMapper.get_as_class_name obj
+        class_name = @class_mapper.get_as_class_name obj
         if class_name
           class_name = class_name.encode("UTF-8").force_encoding("ASCII-8BIT") if class_name.respond_to?(:encode)
           @stream << AMF0_TYPED_OBJECT_MARKER
@@ -170,7 +171,7 @@ module RocketAMF
 
       def amf0_write_prop_list obj
         # Write prop list
-        props = RocketAMF::ClassMapper.props_for_serialization obj
+        props = @class_mapper.props_for_serialization obj
         props.sort.each do |key, value| # Sort keys before writing
           key = key.encode("UTF-8").force_encoding("ASCII-8BIT") if key.respond_to?(:encode)
           @stream << pack_int16_network(key.bytesize)
@@ -295,7 +296,7 @@ module RocketAMF
         if array.respond_to?(:is_array_collection?)
           is_ac = array.is_array_collection?
         else
-          is_ac = RocketAMF::ClassMapper.use_array_collection
+          is_ac = @class_mapper.use_array_collection
         end
 
         # Write type marker
@@ -345,7 +346,7 @@ module RocketAMF
         # Calculate traits if not given
         if traits.nil?
           traits = {
-                    :class_name => RocketAMF::ClassMapper.get_as_class_name(obj),
+                    :class_name => @class_mapper.get_as_class_name(obj),
                     :members => [],
                     :externalizable => false,
                     :dynamic => true
@@ -380,7 +381,7 @@ module RocketAMF
         end
 
         # Extract properties if not given
-        props = RocketAMF::ClassMapper.props_for_serialization(obj) if props.nil?
+        props = @class_mapper.props_for_serialization(obj) if props.nil?
 
         # Write out sealed properties
         traits[:members].each do |m|

@@ -17,14 +17,14 @@ module RocketAMF
     #    req = RocketAMF::Envelope.new.populate_from_stream(env['rack.input'].read)
     #--
     # Implemented in pure/remoting.rb RocketAMF::Pure::Envelope
-    def populate_from_stream stream
+    def populate_from_stream stream, class_mapper=nil
       raise AMFError, 'Must load "rocketamf/pure"'
     end
 
     # Serializes the envelope to a string and returns it
     #--
     # Implemented in pure/remoting.rb RocketAMF::Pure::Envelope
-    def serialize
+    def serialize class_mapper=nil
       raise AMFError, 'Must load "rocketamf/pure"'
     end
 

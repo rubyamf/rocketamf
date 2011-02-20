@@ -7,9 +7,9 @@ module RocketAMF
     module Envelope
       # Included into RocketAMF::Envelope, this method handles deserializing an
       # AMF request/response into the envelope
-      def populate_from_stream stream
+      def populate_from_stream stream, class_mapper=nil
         stream = StringIO.new(stream) unless StringIO === stream
-        des = Deserializer.new
+        des = Deserializer.new(class_mapper || RocketAMF::ClassMapper.new)
         des.source = stream
 
         # Initialize
@@ -57,8 +57,8 @@ module RocketAMF
 
       # Included into RocketAMF::Envelope, this method handles serializing an
       # AMF request/response into the envelope
-      def serialize
-        ser = Serializer.new
+      def serialize class_mapper=nil
+        ser = Serializer.new(class_mapper || RocketAMF::ClassMapper.new)
         stream = ser.stream
 
         # Write version

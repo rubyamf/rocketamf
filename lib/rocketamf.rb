@@ -85,13 +85,15 @@ module RocketAMF
   # Deserialize the AMF string _source_ of the given AMF version into a Ruby
   # data structure and return it
   def self.deserialize source, amf_version = 0
-    RocketAMF::Deserializer.new.deserialize(amf_version, source)
+    des = RocketAMF::Deserializer.new(RocketAMF::ClassMapper.new)
+    des.deserialize(amf_version, source)
   end
 
   # Serialize the given Ruby data structure _obj_ into an AMF stream using the
   # given AMF version
   def self.serialize obj, amf_version = 0
-    RocketAMF::Serializer.new.serialize(amf_version, obj)
+    ser = RocketAMF::Serializer.new(RocketAMF::ClassMapper.new)
+    ser.serialize(amf_version, obj)
   end
 
   # We use const_missing to define the active ClassMapper at runtime. This way,
@@ -99,7 +101,7 @@ module RocketAMF
   # forcing extenders to redefine the constant.
   def self.const_missing const #:nodoc:
     if const == :ClassMapper
-      RocketAMF.const_set(:ClassMapper, RocketAMF::ClassMapping.new)
+      RocketAMF.const_set(:ClassMapper, RocketAMF::ClassMapping)
     else
       super(const)
     end

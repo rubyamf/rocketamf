@@ -6,6 +6,10 @@ module RocketAMF
     class Deserializer
       attr_accessor :source
 
+      def initialize class_mapper
+        @class_mapper = class_mapper
+      end
+
       def deserialize version, source
         raise ArgumentError, "unsupported version #{version}" unless [0,3].include?(version)
         @version = version
@@ -137,14 +141,14 @@ module RocketAMF
       def amf0_read_typed_object
         # Create object to add to ref cache
         class_name = amf0_read_string
-        obj = RocketAMF::ClassMapper.get_ruby_obj class_name
+        obj = @class_mapper.get_ruby_obj class_name
         @ref_cache << obj
 
         # Read object props
         props = amf0_read_object false
 
         # Populate object
-        RocketAMF::ClassMapper.populate_ruby_obj obj, props
+        @class_mapper.populate_ruby_obj obj, props
         return obj
       end
 
@@ -340,7 +344,7 @@ module RocketAMF
             return amf3_deserialize
           end
 
-          obj = RocketAMF::ClassMapper.get_ruby_obj traits[:class_name]
+          obj = @class_mapper.get_ruby_obj traits[:class_name]
           @object_cache << obj
 
           if traits[:externalizable]
@@ -361,7 +365,7 @@ module RocketAMF
               end
             end
 
-            RocketAMF::ClassMapper.populate_ruby_obj obj, props, dynamic_props
+            @class_mapper.populate_ruby_obj obj, props, dynamic_props
           end
           obj
         end

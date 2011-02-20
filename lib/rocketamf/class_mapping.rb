@@ -20,38 +20,7 @@ module RocketAMF
   # for populating ruby objects from AMF and extracting properties from ruby objects
   # for serialization. Support for hash-like objects and objects using
   # <tt>attr_accessor</tt> for properties is currently built in, but custom classes
-  # may need custom support. As such, it is possible to create a custom populator
-  # or serializer.
-  #
-  # Populators are processed in insert order and must respond to the <tt>can_handle?</tt>
-  # and <tt>populate</tt> methods.
-  #
-  #   class CustomPopulator
-  #     def can_handle? obj
-  #       true
-  #     end
-  #   
-  #     def populate obj, props, dynamic_props
-  #       obj.merge! props
-  #       obj.merge!(dynamic_props) if dynamic_props
-  #     end
-  #   end
-  #   RocketAMF::ClassMapper.object_populators << CustomPopulator.new
-  #
-  #
-  # Serializers are also processed in insert order and must respond to the
-  # <tt>can_handle?</tt> and <tt>serialize</tt> methods.
-  #
-  #   class CustomSerializer
-  #     def can_handle? obj
-  #       true
-  #     end
-  #   
-  #     def serialize obj
-  #       {}
-  #     end
-  #   end
-  #   RocketAMF::ClassMapper.object_serializers << CustomSerializer.new
+  # may require subclassing the class mapper to add support.
   #
   # == Complete Replacement
   #
@@ -68,9 +37,9 @@ module RocketAMF
   #   require 'rubygems'
   #   require 'rocketamf'
   #   
-  #   RocketAMF::ClassMapper = MyCustomClassMapper.new
+  #   RocketAMF::ClassMapper = MyCustomClassMapper
   #   # No warning about already initialized constant ClassMapper
-  #   RocketAMF::ClassMapper.class # MyCustomClassMapper
+  #   RocketAMF::ClassMapper # MyCustomClassMapper
   class ClassMapping
     # Container for all mapped classes
     class MappingSet
@@ -113,37 +82,38 @@ module RocketAMF
       end
     end
 
-    # Array of custom object populators.
-    attr_reader :object_populators
+    class << self
+      # Global configuration variable for sending Arrays as ArrayCollections. Defaults
+      # to false.
+      attr_accessor :use_array_collection
 
-    # Array of custom object serializers.
-    attr_reader :object_serializers
+      def mappings
+        @mappings ||= MappingSet.new
+      end
 
-    # Global configuration variable for sending Arrays as ArrayCollections. Defaults
-    # to false.
-    attr_accessor :use_array_collection
+      # Reset all class mappings except the defaults
+      def reset
+        @mappings = nil
+      end
 
-    def initialize #:nodoc:
-      @object_populators = []
-      @object_serializers = []
-      @use_array_collection = false
+      # Define class mappings in the block. Block is passed a MappingSet object as
+      # the first parameter.
+      #
+      # Example:
+      #
+      #   RocketAMF::ClassMapper.define do |m|
+      #     m.map :as => 'AsClass', :ruby => 'RubyClass'
+      #   end
+      def define &block #:yields: mapping_set
+        yield mappings
+      end
     end
 
-    # Define class mappings in the block. Block is passed a MappingSet object as
-    # the first parameter.
-    #
-    # Example:
-    #
-    #   RocketAMF::ClassMapper.define do |m|
-    #     m.map :as => 'AsClass', :ruby => 'RubyClass'
-    #   end
-    def define #:yields: mapping_set
-      yield mappings
-    end
+    attr_reader :use_array_collection #:nodoc:
 
-    # Reset all class mappings except the defaults
-    def reset
-      @mappings = nil
+    def initialize
+      @mappings = self.class.mappings
+      @use_array_collection = RocketAMF::ClassMapping.use_array_collection === true
     end
 
     # Returns the AS class name for the given ruby object. Will also take a string
@@ -159,14 +129,14 @@ module RocketAMF
       end
 
       # Get mapped AS class name
-      mappings.get_as_class_name ruby_class_name
+      @mappings.get_as_class_name ruby_class_name
     end
 
     # Instantiates a ruby object using the mapping configuration based on the
     # source AS class name. If there is no mapping defined, it returns a
     # <tt>RocketAMF::Values::TypedHash</tt> with the serialized class name.
     def get_ruby_obj as_class_name
-      ruby_class_name = mappings.get_ruby_class_name as_class_name
+      ruby_class_name = @mappings.get_ruby_class_name as_class_name
       if ruby_class_name.nil?
         # Populate a simple hash, since no mapping
         return Values::TypedHash.new(as_class_name)
@@ -178,14 +148,6 @@ module RocketAMF
 
     # Populates the ruby object using the given properties
     def populate_ruby_obj obj, props, dynamic_props=nil
-      # Process custom populators
-      @object_populators.each do |p|
-        next unless p.can_handle?(obj)
-        p.populate obj, props, dynamic_props
-        return obj
-      end
-
-      # Fallback populator
       props.merge! dynamic_props if dynamic_props
       hash_like = obj.respond_to?("[]=")
       props.each do |key, value|
@@ -201,12 +163,6 @@ module RocketAMF
     # Extracts all exportable properties from the given ruby object and returns
     # them in a hash
     def props_for_serialization ruby_obj
-      # Proccess custom serializers
-      @object_serializers.each do |s|
-        next unless s.can_handle?(ruby_obj)
-        return s.serialize(ruby_obj)
-      end
-
       # Handle hashes
       if ruby_obj.is_a?(Hash)
         # Stringify keys to make it easier later on and allow sorting
@@ -215,7 +171,7 @@ module RocketAMF
         return h
       end
 
-      # Fallback serializer
+      # Generic object serializer
       props = {}
       @ignored_props ||= Object.new.public_methods
       (ruby_obj.public_methods - @ignored_props).each do |method_name|
@@ -224,11 +180,6 @@ module RocketAMF
         props[method_name.to_s] = ruby_obj.send(method_name) if method_def.arity == 0
       end
       props
-    end
-
-    private
-    def mappings
-      @mappings ||= MappingSet.new
     end
   end
 end
