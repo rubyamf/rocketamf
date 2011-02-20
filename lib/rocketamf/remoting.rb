@@ -106,20 +106,6 @@ module RocketAMF
     end
   end
 
-  class Request < Envelope #:nodoc:
-    def initialize props={}
-      $stderr.puts("DEPRECATION WARNING: Use RocketAMF::Envelope instead of RocketAMF::Request")
-      super(props)
-    end
-  end
-
-  class Response < Envelope #:nodoc:
-    def initialize props={}
-      $stderr.puts("DEPRECATION WARNING: Use RocketAMF::Envelope instead of RocketAMF::Request")
-      super(props)
-    end
-  end
-
   # RocketAMF::Envelope header
   class Header
     attr_accessor :name, :must_understand, :data
