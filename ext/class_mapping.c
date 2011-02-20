@@ -6,6 +6,10 @@ extern VALUE mRocketAMF;
 extern VALUE mRocketAMFExt;
 VALUE cFastMappingSet;
 VALUE cTypedHash;
+ID id_use_ac;
+ID id_use_ac_ivar;
+ID id_mappings;
+ID id_mappings_ivar;
 ID id_hashset;
 
 typedef struct {
@@ -142,17 +146,40 @@ static VALUE mapping_alloc(VALUE klass) {
     CLASS_MAPPING *map = ALLOC(CLASS_MAPPING);
     memset(map, 0, sizeof(CLASS_MAPPING));
     VALUE self = Data_Wrap_Struct(klass, mapping_mark, mapping_free, map);
-    map->mapset = rb_class_new_instance(0, NULL, cFastMappingSet);
     map->setter_cache = st_init_numtable();
     map->prop_cache = st_init_numtable();
     return self;
 }
 
 /*
- * Initialize class mapping object, setting use_class_mapping to false
+ * Class-level getter for use_array_collection
  */
-static VALUE mapping_init(VALUE self) {
-    rb_ivar_set(self, rb_intern("@use_array_collection"), Qfalse);
+static VALUE mapping_s_array_collection_get(VALUE klass) {
+    VALUE use_ac = rb_ivar_get(klass, id_use_ac_ivar);
+    if(use_ac == Qnil) {
+        use_ac = Qfalse;
+        rb_ivar_set(klass, id_use_ac_ivar, use_ac);
+    }
+    return use_ac;
+}
+
+/*
+ * Class-level setter for use_array_collection
+ */
+static VALUE mapping_s_array_collection_set(VALUE klass, VALUE use_ac) {
+    return rb_ivar_set(klass, id_use_ac_ivar, use_ac);
+}
+
+/*
+ * Return MappingSet for class mapper, creating if uninitialized
+ */
+static VALUE mapping_s_mappings(VALUE klass) {
+    VALUE mappings = rb_ivar_get(klass, id_mappings_ivar);
+    if(mappings == Qnil) {
+        mappings = rb_class_new_instance(0, NULL, cFastMappingSet);
+        rb_ivar_set(klass, id_mappings_ivar, mappings);
+    }
+    return mappings;
 }
 
 /*
@@ -162,27 +189,32 @@ static VALUE mapping_init(VALUE self) {
  * Define class mappings in the block. Block is passed a MappingSet object as
  * the first parameter. See RocketAMF::ClassMapping for details.
  */
-static VALUE mapping_define(VALUE self) {
-    CLASS_MAPPING *map;
-    Data_Get_Struct(self, CLASS_MAPPING, map);
-
-	if (rb_block_given_p()) {
-	    rb_yield(map->mapset);
-	}
-
-	return Qnil;
+static VALUE mapping_s_define(VALUE klass) {
+    if (rb_block_given_p()) {
+        VALUE mappings = rb_funcall(klass, id_mappings, 0);
+        rb_yield(mappings);
+    }
+    return Qnil;
 }
 
 /*
  * Reset class mappings
  */
-static VALUE mapping_reset(VALUE self) {
+static VALUE mapping_s_reset(VALUE klass) {
+    rb_ivar_set(klass, id_use_ac_ivar, Qfalse);
+    rb_ivar_set(klass, id_mappings_ivar, Qnil);
+    return Qnil;
+}
+
+/*
+ * Initialize class mapping object, setting use_class_mapping to false
+ */
+static VALUE mapping_init(VALUE self) {
     CLASS_MAPPING *map;
     Data_Get_Struct(self, CLASS_MAPPING, map);
-
-    map->mapset = rb_class_new_instance(0, NULL, cFastMappingSet);
-
-    return Qnil;
+    map->mapset = rb_funcall(CLASS_OF(self), id_mappings, 0);
+    VALUE use_ac = rb_funcall(CLASS_OF(self), id_use_ac, 0);
+    rb_ivar_set(self, id_use_ac_ivar, use_ac);
 }
 
 /*
@@ -357,7 +389,9 @@ static VALUE mapping_props(VALUE self, VALUE obj) {
     VALUE props = rb_hash_new();
     len = RARRAY_LEN(props_ary);
     for(i = 0; i < len; i++) {
-        rb_hash_aset(props, RARRAY_PTR(props_ary)[i], rb_funcall(obj, rb_intern("send"), 1, RARRAY_PTR(props_ary)[i]));
+        VALUE key = RARRAY_PTR(props_ary)[i];
+        ID getter = (TYPE(key) == T_STRING) ? rb_intern(RSTRING_PTR(key)) : SYM2ID(key);
+        rb_hash_aset(props, key, rb_funcall(obj, getter, 0));
     }
 
     return props;
@@ -372,10 +406,13 @@ void Init_rocket_amf_fast_class_mapping() {
     // Define FastClassMapping
     VALUE cFastClassMapping = rb_define_class_under(mRocketAMFExt, "FastClassMapping", rb_cObject);
     rb_define_alloc_func(cFastClassMapping, mapping_alloc);
-    rb_attr(cFastClassMapping, rb_intern("use_array_collection"), 1, 1, Qtrue);
+    rb_define_singleton_method(cFastClassMapping, "use_array_collection", mapping_s_array_collection_get, 0);
+    rb_define_singleton_method(cFastClassMapping, "use_array_collection=", mapping_s_array_collection_set, 1);
+    rb_define_singleton_method(cFastClassMapping, "mappings", mapping_s_mappings, 0);
+    rb_define_singleton_method(cFastClassMapping, "reset", mapping_s_reset, 0);
+    rb_define_singleton_method(cFastClassMapping, "define", mapping_s_define, 0);
+    rb_define_attr(cFastClassMapping, "use_array_collection", 1, 0);
     rb_define_method(cFastClassMapping, "initialize", mapping_init, 0);
-    rb_define_method(cFastClassMapping, "define", mapping_define, 0);
-    rb_define_method(cFastClassMapping, "reset", mapping_reset, 0);
     rb_define_method(cFastClassMapping, "get_as_class_name", mapping_as_class_name, 1);
     rb_define_method(cFastClassMapping, "get_ruby_obj", mapping_get_ruby_obj, 1);
     rb_define_method(cFastClassMapping, "populate_ruby_obj", mapping_populate, -1);
@@ -383,5 +420,9 @@ void Init_rocket_amf_fast_class_mapping() {
 
     // Cache values
     cTypedHash = rb_const_get(rb_const_get(mRocketAMF, rb_intern("Values")), rb_intern("TypedHash"));
+    id_use_ac = rb_intern("use_array_collection");
+    id_use_ac_ivar = rb_intern("@use_array_collection");
+    id_mappings = rb_intern("mappings");
+    id_mappings_ivar = rb_intern("@mappings");
     id_hashset = rb_intern("[]=");
 }

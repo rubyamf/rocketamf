@@ -91,11 +91,6 @@ module RocketAMF
         @mappings ||= MappingSet.new
       end
 
-      # Reset all class mappings except the defaults
-      def reset
-        @mappings = nil
-      end
-
       # Define class mappings in the block. Block is passed a MappingSet object as
       # the first parameter.
       #
@@ -106,6 +101,13 @@ module RocketAMF
       #   end
       def define &block #:yields: mapping_set
         yield mappings
+      end
+
+      # Reset all class mappings except the defaults and return use_array_collection
+      # to false
+      def reset
+        @use_array_collection = false
+        @mappings = nil
       end
     end
 
