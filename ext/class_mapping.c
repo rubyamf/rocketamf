@@ -53,20 +53,35 @@ static VALUE mapset_alloc(VALUE klass) {
     set->as_mappings = st_init_strtable();
     set->rb_mappings = st_init_strtable();
 
-    // Populate with built-in mappings
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.AbstractMessage", rb_str_new2("RocketAMF::Values::AbstractMessage"));
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.RemotingMessage", rb_str_new2("RocketAMF::Values::RemotingMessage"));
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.AsyncMessage", rb_str_new2("RocketAMF::Values::AsyncMessage"));
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.CommandMessage", rb_str_new2("RocketAMF::Values::CommandMessage"));
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.AcknowledgeMessage", rb_str_new2("RocketAMF::Values::AcknowledgeMessage"));
-    st_add_direct(set->as_mappings, (st_data_t)"flex.messaging.messages.ErrorMessage", rb_str_new2("RocketAMF::Values::ErrorMessage"));
+    return self;
+}
 
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::AbstractMessage", rb_str_new2("flex.messaging.messages.AbstractMessage"));
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::RemotingMessage", rb_str_new2("flex.messaging.messages.RemotingMessage"));
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::AsyncMessage", rb_str_new2("flex.messaging.messages.AsyncMessage"));
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::CommandMessage", rb_str_new2("flex.messaging.messages.CommandMessage"));
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::AcknowledgeMessage", rb_str_new2("flex.messaging.messages.AcknowledgeMessage"));
-    st_add_direct(set->rb_mappings, (st_data_t)"RocketAMF::Values::ErrorMessage", rb_str_new2("flex.messaging.messages.ErrorMessage"));
+static VALUE mapset_init(VALUE self) {
+    rb_funcall(self, rb_intern("map_defaults"), 0);
+    return self;
+}
+
+/*
+ * call-seq:
+ *   m.map_defaults
+ *
+ * Adds required mapping configs, calling map for the required base mappings
+ */
+static VALUE mapset_map_defaults(VALUE self) {
+    const int NUM_MAPPINGS = 6;
+    char* ruby_classes[] = {"RocketAMF::Values::AbstractMessage", "RocketAMF::Values::RemotingMessage", "RocketAMF::Values::AsyncMessage", "RocketAMF::Values::CommandMessage", "RocketAMF::Values::AcknowledgeMessage", "RocketAMF::Values::ErrorMessage"};
+    char* as_classes[] = {"flex.messaging.messages.AbstractMessage", "flex.messaging.messages.RemotingMessage", "flex.messaging.messages.AsyncMessage", "flex.messaging.messages.CommandMessage", "flex.messaging.messages.AcknowledgeMessage", "flex.messaging.messages.ErrorMessage"};
+
+    int i;
+    ID map_id = rb_intern("map");
+    VALUE params = rb_hash_new();
+    VALUE as_sym = ID2SYM(rb_intern("as"));
+    VALUE ruby_sym = ID2SYM(rb_intern("ruby"));
+    for(i = 0; i < NUM_MAPPINGS; i++) {
+        rb_hash_aset(params, as_sym, rb_str_new2(as_classes[i]));
+        rb_hash_aset(params, ruby_sym, rb_str_new2(ruby_classes[i]));
+        rb_funcall(self, map_id, 1, params);
+    }
 
     return self;
 }
@@ -215,6 +230,7 @@ static VALUE mapping_init(VALUE self) {
     map->mapset = rb_funcall(CLASS_OF(self), id_mappings, 0);
     VALUE use_ac = rb_funcall(CLASS_OF(self), id_use_ac, 0);
     rb_ivar_set(self, id_use_ac_ivar, use_ac);
+    return self;
 }
 
 /*
@@ -401,6 +417,8 @@ void Init_rocket_amf_fast_class_mapping() {
     // Define map set
     cFastMappingSet = rb_define_class_under(mRocketAMFExt, "FastMappingSet", rb_cObject);
     rb_define_alloc_func(cFastMappingSet, mapset_alloc);
+    rb_define_method(cFastMappingSet, "initialize", mapset_init, 0);
+    rb_define_method(cFastMappingSet, "map_defaults", mapset_map_defaults, 0);
     rb_define_method(cFastMappingSet, "map", mapset_map, 1);
 
     // Define FastClassMapping

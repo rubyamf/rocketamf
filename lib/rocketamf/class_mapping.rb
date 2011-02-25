@@ -2,6 +2,51 @@ require 'rocketamf/values/typed_hash'
 require 'rocketamf/values/messages'
 
 module RocketAMF
+  # Container for all mapped classes
+  class MappingSet
+    def initialize #:nodoc:
+      @as_mappings = {}
+      @ruby_mappings = {}
+      map_defaults
+    end
+
+    # Adds required mapping configs, calling map for the required base mappings
+    def map_defaults
+      map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'RocketAMF::Values::AbstractMessage'
+      map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'RocketAMF::Values::RemotingMessage'
+      map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'RocketAMF::Values::AsyncMessage'
+      map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'RocketAMF::Values::CommandMessage'
+      map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'RocketAMF::Values::AcknowledgeMessage'
+      map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'RocketAMF::Values::ErrorMessage'
+      self
+    end
+
+    # Map a given AS class to a ruby class.
+    #
+    # Use fully qualified names for both.
+    #
+    # Example:
+    #
+    #   m.map :as => 'com.example.Date', :ruby => 'Example::Date'
+    def map params
+      [:as, :ruby].each {|k| params[k] = params[k].to_s} # Convert params to strings
+      @as_mappings[params[:as]] = params[:ruby]
+      @ruby_mappings[params[:ruby]] = params[:as]
+    end
+
+    # Returns the AS class name for the given ruby class name, returing nil if
+    # not found
+    def get_as_class_name class_name #:nodoc:
+      @ruby_mappings[class_name.to_s]
+    end
+
+    # Returns the ruby class name for the given AS class name, returing nil if
+    # not found
+    def get_ruby_class_name class_name #:nodoc:
+      @as_mappings[class_name.to_s]
+    end
+  end
+
   # Handles class name mapping between actionscript and ruby and assists in
   # serializing and deserializing data between them. Simply map an AS class to a
   # ruby class and when the object is (de)serialized it will end up as the
@@ -41,47 +86,6 @@ module RocketAMF
   #   # No warning about already initialized constant ClassMapper
   #   RocketAMF::ClassMapper # MyCustomClassMapper
   class ClassMapping
-    # Container for all mapped classes
-    class MappingSet
-      def initialize #:nodoc:
-        @as_mappings = {}
-        @ruby_mappings = {}
-
-        # Map defaults
-        map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'RocketAMF::Values::AbstractMessage'
-        map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'RocketAMF::Values::RemotingMessage'
-        map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'RocketAMF::Values::AsyncMessage'
-        map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'RocketAMF::Values::CommandMessage'
-        map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'RocketAMF::Values::AcknowledgeMessage'
-        map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'RocketAMF::Values::ErrorMessage'
-      end
-
-      # Map a given AS class to a ruby class.
-      #
-      # Use fully qualified names for both.
-      #
-      # Example:
-      #
-      #   m.map :as => 'com.example.Date', :ruby => 'Example::Date'
-      def map params
-        [:as, :ruby].each {|k| params[k] = params[k].to_s} # Convert params to strings
-        @as_mappings[params[:as]] = params[:ruby]
-        @ruby_mappings[params[:ruby]] = params[:as]
-      end
-
-      # Returns the AS class name for the given ruby class name, returing nil if
-      # not found
-      def get_as_class_name class_name #:nodoc:
-        @ruby_mappings[class_name.to_s]
-      end
-
-      # Returns the ruby class name for the given AS class name, returing nil if
-      # not found
-      def get_ruby_class_name class_name #:nodoc:
-        @as_mappings[class_name.to_s]
-      end
-    end
-
     class << self
       # Global configuration variable for sending Arrays as ArrayCollections. Defaults
       # to false.
