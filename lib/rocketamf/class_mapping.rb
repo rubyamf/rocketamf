@@ -119,7 +119,7 @@ module RocketAMF
 
     def initialize
       @mappings = self.class.mappings
-      @use_array_collection = RocketAMF::ClassMapping.use_array_collection === true
+      @use_array_collection = self.class.use_array_collection === true
     end
 
     # Returns the AS class name for the given ruby object. Will also take a string
