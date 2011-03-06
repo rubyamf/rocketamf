@@ -13,7 +13,6 @@ extern VALUE sym_members;
 extern VALUE sym_externalizable;
 extern VALUE sym_dynamic;
 VALUE cArrayCollection;
-ID id_size;
 ID id_haskey;
 ID id_encode_amf;
 ID id_is_array_collection;
@@ -198,10 +197,6 @@ static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
     if(class_name != Qnil) {
         ser_write_byte(ser, AMF0_TYPED_OBJECT_MARKER);
         ser0_write_string(ser, class_name, Qfalse);
-    } else if(TYPE(obj) == T_HASH) {
-        VALUE size = rb_funcall(obj, id_size, 0);
-        ser_write_byte(ser, AMF0_HASH_MARKER);
-        ser_write_uint32(ser, FIX2LONG(size));
     } else {
         ser_write_byte(ser, AMF0_OBJECT_MARKER);
     }
@@ -814,7 +809,6 @@ void Init_rocket_amf_serializer() {
     rb_define_method(cSerializer, "write_object", ser_write_object, -1);
 
     // Get refs to commonly used symbols and ids
-    id_size = rb_intern("size");
     id_haskey = rb_intern("has_key?");
     id_encode_amf = rb_intern("encode_amf");
     id_is_array_collection = rb_intern("is_array_collection?");

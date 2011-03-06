@@ -159,19 +159,11 @@ module RocketAMF
           @stream << AMF0_TYPED_OBJECT_MARKER
           @stream << pack_int16_network(class_name.bytesize)
           @stream << class_name
-        elsif obj.is_a?(Hash)
-          @stream << AMF0_HASH_MARKER
-          @stream << pack_word32_network(obj.length)
         else
           @stream << AMF0_OBJECT_MARKER
         end
 
-        amf0_write_prop_list props
-      end
-
-      def amf0_write_prop_list obj
         # Write prop list
-        props = @class_mapper.props_for_serialization obj
         props.sort.each do |key, value| # Sort keys before writing
           key = key.encode("UTF-8").force_encoding("ASCII-8BIT") if key.respond_to?(:encode)
           @stream << pack_int16_network(key.bytesize)

@@ -180,9 +180,15 @@ static void des0_read_props(AMF_DESERIALIZER *des, VALUE hash, VALUE(*read_key)(
 }
 
 static VALUE des0_read_object(AMF_DESERIALIZER *des) {
-    VALUE obj = rb_hash_new();
+    // Create object and add to cache
+    VALUE obj = rb_funcall(des->class_mapper, id_get_ruby_obj, 1, rb_str_new(NULL, 0));
     rb_ary_push(des->obj_cache, obj);
-    des0_read_props(des, obj, des_read_sym);
+
+    // Populate object
+    VALUE props = rb_hash_new();
+    des0_read_props(des, props, des_read_sym);
+    rb_funcall(des->class_mapper, id_populate_ruby_obj, 2, obj, props);
+
     return obj;
 }
 

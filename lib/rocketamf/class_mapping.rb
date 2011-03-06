@@ -130,6 +130,8 @@ module RocketAMF
         ruby_class_name = obj
       elsif obj.is_a?(Values::TypedHash)
         ruby_class_name = obj.type
+      elsif obj.is_a?(Hash)
+        return nil
       else
         ruby_class_name = obj.class.name
       end
@@ -152,15 +154,24 @@ module RocketAMF
       end
     end
 
-    # Populates the ruby object using the given properties
+    # Populates the ruby object using the given properties. Properties will
+    # all have symbols for keys.
     def populate_ruby_obj obj, props, dynamic_props=nil
       props.merge! dynamic_props if dynamic_props
+
+      # Don't even bother checking if it responds to setter methods if it's a TypedHash
+      if obj.is_a?(Values::TypedHash)
+        obj.merge! props
+        return obj
+      end
+
+      # Some type of object
       hash_like = obj.respond_to?("[]=")
       props.each do |key, value|
         if obj.respond_to?("#{key}=")
           obj.send("#{key}=", value)
         elsif hash_like
-          obj[key.to_sym] = value
+          obj[key] = value
         end
       end
       obj

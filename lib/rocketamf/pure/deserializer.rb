@@ -90,34 +90,9 @@ module RocketAMF
         str
       end
 
-      def amf0_read_object add_to_ref_cache=true
-        obj = {}
-        @ref_cache << obj if add_to_ref_cache
-        while true
-          key = amf0_read_string
-          type = read_int8 @source
-          break if type == AMF0_OBJECT_END_MARKER
-          obj[key.to_sym] = amf0_deserialize(type)
-        end
-        obj
-      end
-
       def amf0_read_reference
         index = read_word16_network(@source)
         @ref_cache[index]
-      end
-
-      def amf0_read_hash
-        len = read_word32_network(@source) # Read and ignore length
-        obj = {}
-        @ref_cache << obj
-        while true
-          key = amf0_read_string
-          type = read_int8 @source
-          break if type == AMF0_OBJECT_END_MARKER
-          obj[key] = amf0_deserialize(type)
-        end
-        obj
       end
 
       def amf0_read_array
@@ -138,16 +113,43 @@ module RocketAMF
         time
       end
 
+      def amf0_read_props obj={}, key_type=:sym
+        while true
+          key = amf0_read_string
+          type = read_int8 @source
+          break if type == AMF0_OBJECT_END_MARKER
+          key = key.to_sym if key_type == :sym
+          obj[key] = amf0_deserialize(type)
+        end
+        obj
+      end
+
+      def amf0_read_hash
+        len = read_word32_network(@source) # Read and ignore length
+        obj = {}
+        @ref_cache << obj
+        amf0_read_props obj, :string
+      end
+
+      def amf0_read_object add_to_ref_cache=true
+        # Create "object" and add to ref cache (it's always a Hash)
+        obj = @class_mapper.get_ruby_obj ""
+        @ref_cache << obj
+
+        # Populate object
+        props = amf0_read_props
+        @class_mapper.populate_ruby_obj obj, props
+        return obj
+      end
+
       def amf0_read_typed_object
         # Create object to add to ref cache
         class_name = amf0_read_string
         obj = @class_mapper.get_ruby_obj class_name
         @ref_cache << obj
 
-        # Read object props
-        props = amf0_read_object false
-
         # Populate object
+        props = amf0_read_props
         @class_mapper.populate_ruby_obj obj, props
         return obj
       end

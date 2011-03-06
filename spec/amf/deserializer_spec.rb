@@ -43,6 +43,7 @@ describe "when deserializing" do
       input = object_fixture('amf0-object.bin')
       output = RocketAMF.deserialize(input, 0)
       output.should == {:foo => 'baz', :bar => 3.14}
+      output.type.should == ""
     end
 
     it "should deserialize nulls" do
@@ -61,7 +62,7 @@ describe "when deserializing" do
       input = object_fixture('amf0-ref-test.bin')
       output = RocketAMF.deserialize(input, 0)
       output.length.should == 2
-      output[0].should === output[1]
+      output["0"].should === output["1"]
     end
 
     it "should deserialize hashes" do
@@ -215,6 +216,7 @@ describe "when deserializing" do
           :another_public_property => 'a_public_value'
         }
         output.should == expected
+        output.type.should == ""
       end
 
       it "should deserialize a mapped object as a mapped ruby class instance" do

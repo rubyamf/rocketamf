@@ -69,9 +69,9 @@ describe "when serializing" do
       output.should == object_fixture('amf0-time.bin')
     end
 
-    it "should serialize hashes" do
-      output = RocketAMF.serialize({:a => 'b', 'c' => 'd'}, 0)
-      output.should == object_fixture('amf0-hash.bin')
+    it "should serialize hashes as objects" do
+      output = RocketAMF.serialize({:baz => nil, "foo" => "bar"}, 0)
+      output.should == object_fixture('amf0-untyped-object.bin')
     end
 
     it "should serialize unmapped objects" do
