@@ -95,7 +95,6 @@ module RocketAMF
       serialize
     end
 
-    private
     def dispatch_call p
       begin
         p[:block].call(p[:method], p[:args])
