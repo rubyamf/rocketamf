@@ -120,8 +120,7 @@ static VALUE ser0_write_array(VALUE self, VALUE ary) {
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
     // Cache it
-    VALUE obj_id = rb_obj_id(ary);
-    st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+    st_add_direct(ser->obj_cache, ary, LONG2FIX(ser->obj_index));
     ser->obj_index++;
 
     // Write it out
@@ -183,8 +182,7 @@ static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
     // Cache it
-    VALUE obj_id = rb_obj_id(obj);
-    st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+    st_add_direct(ser->obj_cache, obj, LONG2FIX(ser->obj_index));
     ser->obj_index++;
 
     // Make a request for props hash unless we already have it
@@ -260,9 +258,8 @@ static VALUE ser0_serialize(VALUE self, VALUE obj) {
         klass = CLASS_OF(obj);
     }
 
-    VALUE obj_id = rb_obj_id(obj);
     VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+    if(st_lookup(ser->obj_cache, obj, &obj_index)) {
         ser_write_byte(ser, AMF0_REFERENCE_MARKER);
         ser_write_uint16(ser, FIX2LONG(obj_index));
     } else if(rb_respond_to(obj, id_encode_amf)) {
@@ -340,13 +337,12 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
     ser_write_byte(ser, is_ac ? AMF3_OBJECT_MARKER : AMF3_ARRAY_MARKER);
 
     // Write object ref, or cache it
-    VALUE obj_id = rb_obj_id(ary);
     VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+    if(st_lookup(ser->obj_cache, ary, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
         return self;
     } else {
-        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        st_add_direct(ser->obj_cache, ary, LONG2FIX(ser->obj_index));
         ser->obj_index++;
     }
 
@@ -412,13 +408,12 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     ser_write_byte(ser, AMF3_OBJECT_MARKER);
 
     // Write object ref, or cache it
-    VALUE obj_id = rb_obj_id(obj);
     VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+    if(st_lookup(ser->obj_cache, obj, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
         return self;
     } else {
-        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        st_add_direct(ser->obj_cache, obj, LONG2FIX(ser->obj_index));
         ser->obj_index++;
     }
 
@@ -507,28 +502,27 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     return self;
 }
 
-static VALUE ser3_write_time(VALUE self, VALUE time) {
+static VALUE ser3_write_time(VALUE self, VALUE time_obj) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
     ser_write_byte(ser, AMF3_DATE_MARKER);
 
     // Write object ref, or cache it
-    VALUE obj_id = rb_obj_id(time);
     VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+    if(st_lookup(ser->obj_cache, time_obj, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
         return;
     } else {
-        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        st_add_direct(ser->obj_cache, time_obj, LONG2FIX(ser->obj_index));
         ser->obj_index++;
     }
 
     // Write time
     ser_write_byte(ser, AMF3_NULL_MARKER); // Ref header
-    time = rb_obj_dup(time);
-    rb_funcall(time, id_utc, 0);
-    long tmp_num = NUM2DBL(rb_funcall(time, id_to_f, 0)) * 1000;
+    time_obj = rb_obj_dup(time_obj);
+    rb_funcall(time_obj, id_utc, 0);
+    long tmp_num = NUM2DBL(rb_funcall(time_obj, id_to_f, 0)) * 1000;
     ser_write_double(ser, (double)tmp_num);
 }
 
@@ -539,13 +533,12 @@ static VALUE ser3_write_date(VALUE self, VALUE date) {
     ser_write_byte(ser, AMF3_DATE_MARKER);
 
     // Write object ref, or cache it
-    VALUE obj_id = rb_obj_id(date);
     VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+    if(st_lookup(ser->obj_cache, date, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
         return;
     } else {
-        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        st_add_direct(ser->obj_cache, date, LONG2FIX(ser->obj_index));
         ser->obj_index++;
     }
 
@@ -562,13 +555,12 @@ static VALUE ser3_write_byte_array(VALUE self, VALUE ba) {
     ser_write_byte(ser, AMF3_BYTE_ARRAY_MARKER);
 
     // Write object ref, or cache it
-    VALUE obj_id = rb_obj_id(ba);
     VALUE obj_index;
-    if(st_lookup(ser->obj_cache, obj_id, &obj_index)) {
+    if(st_lookup(ser->obj_cache, ba, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
         return;
     } else {
-        st_add_direct(ser->obj_cache, obj_id, LONG2FIX(ser->obj_index));
+        st_add_direct(ser->obj_cache, ba, LONG2FIX(ser->obj_index));
         ser->obj_index++;
     }
 
