@@ -6,10 +6,17 @@ module RocketAMF
     class Deserializer
       attr_accessor :source
 
+      # Pass in the class mapper instance to use when deserializing. This
+      # enables better caching behavior in the class mapper and allows
+      # one to change mappings between deserialization attempts.
       def initialize class_mapper
         @class_mapper = class_mapper
       end
 
+      # Deserialize the source using AMF0 or AMF3. Source should either
+      # be a string or StringIO object. If you pass a StringIO object,
+      # it will have its position updated to the end of the deserialized
+      # data.
       def deserialize version, source
         raise ArgumentError, "unsupported version #{version}" unless [0,3].include?(version)
         @version = version

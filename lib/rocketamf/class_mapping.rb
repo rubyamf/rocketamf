@@ -10,7 +10,8 @@ module RocketAMF
       map_defaults
     end
 
-    # Adds required mapping configs, calling map for the required base mappings
+    # Adds required mapping configs, calling map for the required base mappings.
+    # Designed to allow extenders to take advantage of required default mappings.
     def map_defaults
       map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'RocketAMF::Values::AbstractMessage'
       map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'RocketAMF::Values::RemotingMessage'
@@ -70,12 +71,14 @@ module RocketAMF
   # == Complete Replacement
   #
   # In some cases, it may be beneficial to replace the default provider of class
-  # mapping completely. In this case, simply assign an instance of your own class
-  # mapper to <tt>RocketAMF::ClassMapper</tt> after loading RocketAMF. Through
-  # the magic of <tt>const_missing</tt>, <tt>ClassMapper</tt> is only defined after
-  # the first access by default, so you get no annoying warning messages. Custom
-  # class mappers must implement the following methods: <tt>get_as_class_name</tt>,
-  # <tt>get_ruby_obj</tt>, <tt>populate_ruby_obj</tt>, <tt>props_for_serialization</tt>.
+  # mapping completely. In this case, simply assign your class mapper class to
+  # <tt>RocketAMF::ClassMapper</tt> after loading RocketAMF. Through the magic of
+  # <tt>const_missing</tt>, <tt>ClassMapper</tt> is only defined after the first
+  # access by default, so you get no annoying warning messages. Custom class mappers
+  # must implement the following methods: <tt>use_array_collection</tt>,
+  # <tt>get_as_class_name</tt>, <tt>get_ruby_obj</tt>, <tt>populate_ruby_obj</tt>,
+  # <tt>props_for_serialization</tt>. In addition, it should have a class level
+  # <tt>mappings</tt> method that returns the mapping set it's using.
   #
   # Example:
   #
@@ -85,18 +88,40 @@ module RocketAMF
   #   RocketAMF::ClassMapper = MyCustomClassMapper
   #   # No warning about already initialized constant ClassMapper
   #   RocketAMF::ClassMapper # MyCustomClassMapper
+  #
+  # == C ClassMapper
+  #
+  # The C class mapper, <tt>RocketAMF::Ext::FastClassMapping</tt>, has the same
+  # public API that <tt>RubyAMF::ClassMapping</tt> does, but has some additional
+  # performance optimizations that may interfere with the proper serialization of
+  # objects. To reduce the cost of processing public methods for every object,
+  # its implementation of <tt>props_for_serialization</tt> caches valid properties
+  # by Class, using the Class as the hash key for property lookup. This means that
+  # adding and removing properties from instances while serializing using a given
+  # class mapper instance will result in the changes not being detected.  As such,
+  # it's not enabled by default. So long as you aren't planning on modifying
+  # classes during serialization using <tt>encode_amf</tt>, the faster C class
+  # mapper should be perfectly safe to use.
+  #
+  # Activating the C Class Mapper:
+  #
+  #   require 'rubygems'
+  #   require 'rocketamf'
+  #   RocketAMF::ClassMapper = RocketAMF::Ext::FastClassMapping
   class ClassMapping
     class << self
-      # Global configuration variable for sending Arrays as ArrayCollections. Defaults
-      # to false.
+      # Global configuration variable for sending Arrays as ArrayCollections.
+      # Defaults to false.
       attr_accessor :use_array_collection
 
+      # Returns the mapping set with all the class mappings that is currently
+      # being used.
       def mappings
         @mappings ||= MappingSet.new
       end
 
-      # Define class mappings in the block. Block is passed a MappingSet object as
-      # the first parameter.
+      # Define class mappings in the block. Block is passed a <tt>MappingSet</tt> object
+      # as the first parameter.
       #
       # Example:
       #
@@ -107,23 +132,24 @@ module RocketAMF
         yield mappings
       end
 
-      # Reset all class mappings except the defaults and return use_array_collection
-      # to false
+      # Reset all class mappings except the defaults and return
+      # <tt>use_array_collection</tt> to false
       def reset
         @use_array_collection = false
         @mappings = nil
       end
     end
 
-    attr_reader :use_array_collection #:nodoc:
+    attr_reader :use_array_collection
 
+    # Copies configuration from class level configs to populate object
     def initialize
       @mappings = self.class.mappings
       @use_array_collection = self.class.use_array_collection === true
     end
 
-    # Returns the AS class name for the given ruby object. Will also take a string
-    # containing the ruby class name.
+    # Returns the ActionScript class name for the given ruby object. Will also
+    # take a string containing the ruby class name.
     def get_as_class_name obj
       # Get class name
       if obj.is_a?(String)
@@ -141,8 +167,8 @@ module RocketAMF
     end
 
     # Instantiates a ruby object using the mapping configuration based on the
-    # source AS class name. If there is no mapping defined, it returns a
-    # <tt>RocketAMF::Values::TypedHash</tt> with the serialized class name.
+    # source ActionScript class name. If there is no mapping defined, it returns
+    # a <tt>RocketAMF::Values::TypedHash</tt> with the serialized class name.
     def get_ruby_obj as_class_name
       ruby_class_name = @mappings.get_ruby_class_name as_class_name
       if ruby_class_name.nil?
@@ -154,8 +180,8 @@ module RocketAMF
       end
     end
 
-    # Populates the ruby object using the given properties. Properties will
-    # all have symbols for keys.
+    # Populates the ruby object using the given properties. props and
+    # dynamic_props will be hashes with symbols for keys.
     def populate_ruby_obj obj, props, dynamic_props=nil
       props.merge! dynamic_props if dynamic_props
 
@@ -178,7 +204,10 @@ module RocketAMF
     end
 
     # Extracts all exportable properties from the given ruby object and returns
-    # them in a hash
+    # them in a hash. If overriding, make sure to return a hash wth string keys
+    # unless you are only going to be using the native C extensions, as the pure
+    # ruby serializer performs a sort on the keys to acheive consistent, testable
+    # results.
     def props_for_serialization ruby_obj
       # Handle hashes
       if ruby_obj.is_a?(Hash)

@@ -8,21 +8,48 @@ require 'rocketamf/class_mapping'
 require 'rocketamf/constants'
 require 'rocketamf/remoting'
 
-# RocketAMF is a full featured AMF0/3 serializer and deserializer with support
-# for Flash -> Ruby and Ruby -> Flash class mapping, custom serializers,
-# remoting gateway helpers that follow AMF0/3 messaging specs, and a suite of
-# specs to ensure adherence to the specification documents put out by Adobe.
+# RocketAMF is a full featured AMF0/3 serializer and deserializer with support for
+# bi-directional Flash to Ruby class mapping, custom serialization and mapping,
+# remoting gateway helpers that follow AMF0/3 messaging specs, and a suite of specs
+# to ensure adherence to the specification documents put out by Adobe. If the C
+# components compile, then RocketAMF automatically takes advantage of them to
+# provide a substantial performance benefit. In addition, RocketAMF is fully
+# compatible with Ruby 1.9.
+#
+# == Performance
+#
+# RocketAMF provides native C extensions for serialization, deserialization,
+# remoting, and class mapping. If your environment supports them, RocketAMF will
+# automatically take advantage of the C serializer, deserializer, and remoting
+# support. The C class mapper has some substantial performance optimizations that
+# make it incompatible with the pure Ruby class mapper, and so it must be manually
+# enabled. For more information see <tt>RocketAMF::ClassMapping</tt>. Below are
+# some benchmarks I took using using a simple little benchmarking utility I whipped
+# up, which can be found in the root of the repository.
+#
+#   # 100000 objects
+#   # Ruby 1.8
+#   Testing native AMF0:
+#     minimum serialize time: 1.229868s
+#     minimum deserialize time: 0.86465s
+#   Testing native AMF3:
+#     minimum serialize time: 1.444652s
+#     minimum deserialize time: 0.879407s
+#   Testing pure AMF0:
+#     minimum serialize time: 25.427931s
+#     minimum deserialize time: 11.706084s
+#   Testing pure AMF3:
+#     minimum serialize time: 31.637864s
+#     minimum deserialize time: 14.773969s
 #
 # == Serialization & Deserialization
 #
-# RocketAMF provides two main methods - <tt>RocketAMF.serialize(obj, amf_version=0)</tt>
-# and <tt>RocketAMF.deserialize(source, amf_version=0)</tt>. To use, simple pass
-# in the string to deserialize and the version if different from the default. To
-# serialize an object, simply call <tt>RocketAMF.serialize</tt> with the object
-# and the proper version. If you're working only with AS3, it is more effiecient
-# to use the version 3 encoding, as it caches duplicate string to reduce
-# serialized size. However for greater compatibility the default, AMF version 0,
-# should work fine.
+# RocketAMF provides two main methods - <tt>serialize</tt> and <tt>deserialize</tt>.
+# Deserialization takes a String or StringIO object and the version if different
+# from the default. Serialization takes any Ruby object and the version if different
+# from the default. Both default to AMF0, as it's more widely supported and slightly
+# faster, but AMF3 does a better job of not sending duplicate data. Which you choose
+# depends on what you need to communicate with and how much serialized size matters.
 #
 # == Mapping Classes Between Flash and Ruby
 #
@@ -83,14 +110,18 @@ module RocketAMF
   end
 
   # Deserialize the AMF string _source_ of the given AMF version into a Ruby
-  # data structure and return it
+  # data structure and return it. Creates an instance of <tt>RocketAMF::Deserializer</tt>
+  # with a new instance of <tt>RocketAMF::ClassMapper</tt> and calls deserialize
+  # on it with the given source and amf version, returning the result.
   def self.deserialize source, amf_version = 0
     des = RocketAMF::Deserializer.new(RocketAMF::ClassMapper.new)
     des.deserialize(amf_version, source)
   end
 
   # Serialize the given Ruby data structure _obj_ into an AMF stream using the
-  # given AMF version
+  # given AMF version. Creates an instance of <tt>RocketAMF::Serializer</tt>
+  # with a new instance of <tt>RocketAMF::ClassMapper</tt> and calls serialize
+  # on it with the given object and amf version, returning the result.
   def self.serialize obj, amf_version = 0
     ser = RocketAMF::Serializer.new(RocketAMF::ClassMapper.new)
     ser.serialize(amf_version, obj)

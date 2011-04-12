@@ -6,12 +6,18 @@ module RocketAMF
     class Serializer
       attr_reader :stream, :version
 
+      # Pass in the class mapper instance to use when serializing. This enables
+      # better caching behavior in the class mapper and allows one to change
+      # mappings between serialization attempts.
       def initialize class_mapper
         @class_mapper = class_mapper
         @stream = ""
         @depth = 0
       end
 
+      # Serialize the given object using AMF0 or AMF3. Can be called from inside
+      # encode_amf, but make sure to pass in the proper version or it may not be
+      # possible to decode. Use the serializer version attribute for this.
       def serialize version, obj
         raise ArgumentError, "unsupported version #{version}" unless [0,3].include?(version)
         @version = version
@@ -47,6 +53,8 @@ module RocketAMF
         return @stream
       end
 
+      # Helper for writing arrays inside encode_amf. It uses the current AMF
+      # version to write the array.
       def write_array arr
         if @version == 0
           amf0_write_array arr
@@ -55,6 +63,11 @@ module RocketAMF
         end
       end
 
+      # Helper for writing objects inside encode_amf. It uses the current AMF
+      # version to write the object. If you pass in a property hash, it will use
+      # it rather than having the class mapper determine properties. For AMF3,
+      # you can also specify a traits hash, which can be used to reduce serialized
+      # data size or serialize things as externalizable.
       def write_object obj, props=nil, traits=nil
         if @version == 0
           amf0_write_object obj, props
