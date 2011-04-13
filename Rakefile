@@ -2,11 +2,23 @@ require 'rubygems'
 require 'rake'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
-
 require 'spec/rake/spectask'
 
 desc 'Default: run the specs.'
 task :default => :spec
+
+# I don't want to depend on bundler, so we do it the bundler way without it
+gemspec_path = 'RocketAMF.gemspec'
+spec = begin
+  eval(File.read(File.join(File.dirname(__FILE__), gemspec_path)), TOPLEVEL_BINDING, gemspec_path)
+rescue LoadError => e
+  original_line = e.backtrace.find { |line| line.include?(gemspec_path) }
+  msg  = "There was a LoadError while evaluating #{gemspec_path}:\n  #{e.message}"
+  msg << " from\n  #{original_line}" if original_line
+  msg << "\n"
+  puts msg
+  exit
+end
 
 Spec::Rake::SpecTask.new do |t|
   t.spec_opts = ['--options', 'spec/spec.opts']
@@ -15,41 +27,13 @@ end
 desc 'Generate documentation for the RocketAMF plugin.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_dir = 'rdoc'
-  rdoc.title    = 'RocketAMF'
-  rdoc.options << '--line-numbers' << '--main' << 'README.rdoc'
-  rdoc.rdoc_files.include('README.rdoc')
-  rdoc.rdoc_files.include('lib/**/*.rb')
+  rdoc.title    = spec.name
+  rdoc.options += spec.rdoc_options
+  rdoc.rdoc_files.include(*spec.extra_rdoc_files)
+  rdoc.rdoc_files.include(*spec.require_paths)
 end
 
-spec = Gem::Specification.new do |s|
-  s.name    = 'RocketAMF'
-  s.version = '0.2.1'
-  s.summary = 'Fast AMF serializer/deserializer with remoting request/response wrappers to simplify integration'
-
-  s.files        = FileList['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.{rb,bin,opts}', 'ext/*.{c,h,rb}']
-  s.require_paths << 'ext'
-  s.extensions   = ["ext/extconf.rb"]
-  s.test_files   = Dir[*['spec/**/*_spec.rb']]
-
-  s.has_rdoc         = true
-  s.extra_rdoc_files = ['README.rdoc']
-  s.rdoc_options     = ['--line-numbers', '--main', 'README.rdoc']
-
-  s.authors  = ['Jacob Henry', 'Stephen Augenstein', "Joc O'Connor"]
-  s.email    = 'perl.programmer@gmail.com'
-  s.homepage = 'http://github.com/warhammerkid/rocket-amf'
-
-  s.platform = Gem::Platform::RUBY
-end
-
-Rake::GemPackageTask.new spec do |pkg|
+Rake::GemPackageTask.new(spec) do |pkg|
   pkg.need_tar = true
   pkg.need_zip = true
-end
-
-desc 'Generate a gemspec file'
-task :gemspec do
-  File.open("#{spec.name}.gemspec", 'w') do |f|
-    f.write spec.to_ruby
-  end
 end
