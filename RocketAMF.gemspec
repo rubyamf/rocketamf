@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name    = 'RocketAMF'
-  s.version = '0.2.1'
+  s.version = '1.0.0'
   s.summary = 'Fast AMF serializer/deserializer with remoting request/response wrappers to simplify integration'
 
   s.files         = Dir[*['README.rdoc', 'Rakefile', 'lib/**/*.rb', 'spec/**/*.{rb,bin,opts}', 'ext/*.{c,h,rb}']]
@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
 
   s.authors  = ['Jacob Henry', 'Stephen Augenstein', "Joc O'Connor"]
   s.email    = 'perl.programmer@gmail.com'
-  s.homepage = 'http://github.com/warhammerkid/rocket-amf'
+  s.homepage = 'http://github.com/rubyamf/rocketamf'
 
   s.platform = Gem::Platform::RUBY
 end
