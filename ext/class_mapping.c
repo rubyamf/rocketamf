@@ -56,6 +56,12 @@ static VALUE mapset_alloc(VALUE klass) {
     return self;
 }
 
+/*
+ * call-seq:
+ *   RocketAMF::Ext::MappingSet.new
+ *
+ * Creates a mapping set object and populates the default mappings
+ */
 static VALUE mapset_init(VALUE self) {
     rb_funcall(self, rb_intern("map_defaults"), 0);
     return self;

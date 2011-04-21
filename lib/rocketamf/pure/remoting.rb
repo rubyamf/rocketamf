@@ -56,7 +56,7 @@ module RocketAMF
       end
 
       # Included into RocketAMF::Envelope, this method handles serializing an
-      # AMF request/response into the envelope
+      # AMF request/response into a string
       def serialize class_mapper=nil
         ser = Serializer.new(class_mapper || RocketAMF::ClassMapper.new)
         stream = ser.stream

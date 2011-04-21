@@ -14,6 +14,13 @@ ID id_headers;
 ID id_messages;
 ID id_data;
 
+/*
+ * call-seq:
+ *   env.populate_from_stream(stream, class_mapper=nil)
+ *
+ * Included into RocketAMF::Envelope, this method handles deserializing an AMF
+ * request/response into the envelope
+ */
 static VALUE env_populate_from_stream(int argc, VALUE *argv, VALUE self) {
     static VALUE cClassMapper = 0;
     if(cClassMapper == 0) cClassMapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));
@@ -79,6 +86,13 @@ static VALUE env_populate_from_stream(int argc, VALUE *argv, VALUE self) {
     return self;
 }
 
+/*
+ * call-seq:
+ *   env.serialize(class_mapper=nil)
+ *
+ * Included into RocketAMF::Envelope, this method handles serializing an AMF
+ * request/response into a string
+ */
 static VALUE env_serialize(int argc, VALUE *argv, VALUE self) {
     static VALUE cClassMapper = 0;
     if(cClassMapper == 0) cClassMapper = rb_const_get(mRocketAMF, rb_intern("ClassMapper"));

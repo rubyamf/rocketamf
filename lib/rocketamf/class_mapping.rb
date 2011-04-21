@@ -4,7 +4,8 @@ require 'rocketamf/values/messages'
 module RocketAMF
   # Container for all mapped classes
   class MappingSet
-    def initialize #:nodoc:
+    # Creates a mapping set object and populates the default mappings
+    def initialize
       @as_mappings = {}
       @ruby_mappings = {}
       map_defaults
@@ -75,10 +76,12 @@ module RocketAMF
   # <tt>RocketAMF::ClassMapper</tt> after loading RocketAMF. Through the magic of
   # <tt>const_missing</tt>, <tt>ClassMapper</tt> is only defined after the first
   # access by default, so you get no annoying warning messages. Custom class mappers
-  # must implement the following methods: <tt>use_array_collection</tt>,
+  # must implement the following methods on instances: <tt>use_array_collection</tt>,
   # <tt>get_as_class_name</tt>, <tt>get_ruby_obj</tt>, <tt>populate_ruby_obj</tt>,
-  # <tt>props_for_serialization</tt>. In addition, it should have a class level
-  # <tt>mappings</tt> method that returns the mapping set it's using.
+  # and <tt>props_for_serialization</tt>. In addition, it should have a class level
+  # <tt>mappings</tt> method that returns the mapping set it's using, although its
+  # not required. If you'd like to see an example of what complete replacement
+  # offers, check out RubyAMF (http://github.com/rubyamf/rubyamf).
   #
   # Example:
   #
@@ -96,7 +99,7 @@ module RocketAMF
   # performance optimizations that may interfere with the proper serialization of
   # objects. To reduce the cost of processing public methods for every object,
   # its implementation of <tt>props_for_serialization</tt> caches valid properties
-  # by Class, using the Class as the hash key for property lookup. This means that
+  # by class, using the class as the hash key for property lookup. This means that
   # adding and removing properties from instances while serializing using a given
   # class mapper instance will result in the changes not being detected.  As such,
   # it's not enabled by default. So long as you aren't planning on modifying

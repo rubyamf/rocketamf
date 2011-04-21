@@ -18,7 +18,7 @@ compatible with Ruby 1.9.
 
   hash = {:apple => "Apfel", :red => "Rot", :eyes => "Augen"}
   File.open("amf.dat", 'w') do |f|
-    f.write RocketAMF.serialize(hash, 3) # Use AMF3 encoding because it's smaller
+    f.write RocketAMF.serialize(hash, 3) # Use AMF3 encoding to serialize
   end
 
 == LICENSE:

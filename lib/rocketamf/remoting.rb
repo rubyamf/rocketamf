@@ -9,8 +9,8 @@ module RocketAMF
       @messages = props[:messages] || []
     end
 
-    # Populates the envelope from the given stream or string. Returns self for easy
-    # chaining.
+    # Populates the envelope from the given stream or string using the given
+    # class mapper, or creates a new one. Returns self for easy chaining.
     #
     # Example:
     #
@@ -21,7 +21,8 @@ module RocketAMF
       raise AMFError, 'Must load "rocketamf/pure"'
     end
 
-    # Serializes the envelope to a string and returns it
+    # Serializes the envelope to a string using the given class mapper, or creates
+    # a new one, and returns the result
     #--
     # Implemented in pure/remoting.rb RocketAMF::Pure::Envelope
     def serialize class_mapper=nil
@@ -95,7 +96,7 @@ module RocketAMF
       serialize
     end
 
-    def dispatch_call p
+    def dispatch_call p #:nodoc:
       begin
         p[:block].call(p[:method], p[:args])
       rescue Exception => e

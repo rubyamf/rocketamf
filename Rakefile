@@ -30,7 +30,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.title    = spec.name
   rdoc.options += spec.rdoc_options
   rdoc.rdoc_files.include(*spec.extra_rdoc_files)
-  rdoc.rdoc_files.include(*spec.require_paths)
+  rdoc.rdoc_files.include("lib") # Don't include ext folder because no one cares
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|

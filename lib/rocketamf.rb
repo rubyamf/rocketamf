@@ -45,7 +45,7 @@ require 'rocketamf/remoting'
 # == Serialization & Deserialization
 #
 # RocketAMF provides two main methods - <tt>serialize</tt> and <tt>deserialize</tt>.
-# Deserialization takes a String or StringIO object and the version if different
+# Deserialization takes a String or StringIO object and the AMF version if different
 # from the default. Serialization takes any Ruby object and the version if different
 # from the default. Both default to AMF0, as it's more widely supported and slightly
 # faster, but AMF3 does a better job of not sending duplicate data. Which you choose
@@ -63,8 +63,9 @@ require 'rocketamf/remoting'
 # == Remoting
 #
 # You can use RocketAMF bare to write an AMF gateway using the following code.
-# In addition, you can use rack-amf (http://github.com/warhammerkid/rack-amf)
-# which simplifies the code necessary to set up a functioning AMF gateway.
+# In addition, you can use rack-amf (http://github.com/rubyamf/rack-amf) or
+# RubyAMF (http://github.com/rubyamf/rubyamf), both of which provide rack-compliant
+# AMF gateways.
 #
 #   # helloworld.ru
 #   require 'rocketamf'
@@ -102,6 +103,81 @@ require 'rocketamf/remoting'
 #   end
 #
 #   run HelloWorldApp.new
+#
+# == Advanced Serialization (encode_amf and IExternalizable)
+#
+# RocketAMF provides some additional functionality to support advanced
+# serialization techniques. If you define an <tt>encode_amf</tt> method on your
+# object, it will get called during serialization. It is passed a single argument,
+# the serializer, and it can use the serializer stream, the <tt>serialize</tt>
+# method, the <tt>write_array</tt> method, the <tt>write_object</tt> method, and
+# the serializer version. Below is a simple example that uses <tt>write_object</tt>
+# to customize the property hash that is used for serialization.
+#
+# Example:
+#
+#   class TestObject
+#     def encode_amf ser
+#       ser.write_object self, @attributes
+#     end
+#   end
+#
+# If you plan on using the <tt>serialize</tt> method, make sure to pass in the
+# current serializer version, or you could create a message that cannot be deserialized.
+#
+# Example:
+#
+#   class VariableObject
+#     def encode_amf ser
+#       if ser.version == 0
+#         ser.serialize 0, true
+#       else
+#         ser.serialize 3, false
+#       end
+#     end
+#   end
+#
+# If you wish to send and receive IExternalizable objects, you will need to
+# implement <tt>encode_amf</tt>, <tt>read_external</tt>, and <tt>write_external</tt>.
+# Below is an example of a ResultSet class that extends Array and serializes as
+# an array collection. RocketAMF can automatically serialize arrays as
+# ArrayCollection objects, so this is just an example of how you might implement
+# an object that conforms to IExternalizable.
+#
+# Example:
+#
+#   class ResultSet < Array
+#     def encode_amf ser
+#       if ser.version == 0
+#         # Serialize as simple array in AMF0
+#         ser.write_array self
+#       else
+#         # Serialize as an ArrayCollection object
+#         # It conforms to IExternalizable, does not have any dynamic properties,
+#         # and has no "sealed" members. See the AMF3 specs for more details about
+#         # object traits.
+#         ser.write_object self, nil, {
+#           :class_name => "flex.messaging.io.ArrayCollection",
+#           :externalizable => true,
+#           :dynamic => false,
+#           :members => []
+#         }
+#       end
+#     end
+#   
+#     # Force it to be converted to an array so we don't get into an endless loop,
+#     # serialize, and append to data stream
+#     def write_external stream
+#       serialized = RocketAMF.serialize([]+self, 3)
+#       stream << serialized
+#     end
+#   
+#     # Read array out and replace data with deserialized array. Source is always
+#     # a StringIO object.
+#     def read_external source
+#       replace RocketAMF.deserialize(source, 3)
+#     end
+#   end
 module RocketAMF
   begin
     require 'rocketamf/ext'

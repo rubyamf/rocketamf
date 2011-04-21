@@ -1,6 +1,6 @@
 # Joc's monkeypatch for string bytesize (only available in 1.8.7+)
 if !"amf".respond_to? :bytesize
-  class String
+  class String #:nodoc:
     def bytesize
       self.size
     end
