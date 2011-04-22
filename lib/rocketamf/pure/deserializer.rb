@@ -350,7 +350,9 @@ module RocketAMF
 
           # Optimization for deserializing ArrayCollection
           if traits[:class_name] == "flex.messaging.io.ArrayCollection"
-            return amf3_deserialize
+            arr = amf3_deserialize # Adds ArrayCollection array to object cache
+            @object_cache << arr # Add again for ArrayCollection source array
+            return arr
           end
 
           obj = @class_mapper.get_ruby_obj traits[:class_name]

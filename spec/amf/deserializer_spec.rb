@@ -277,6 +277,15 @@ describe "when deserializing" do
         output.should == ["foo", "bar"]
       end
 
+      it "should deserialize a complex set of array collections" do
+        input = object_fixture('amf3-complexArrayCollection.bin')
+        output = RocketAMF.deserialize(input, 3)
+
+        output[0].should == ["foo", "bar"]
+        output[1].should == ["bar", "foo"]
+        output[2].should === output[1]
+      end
+
       it "should deserialize a byte array" do
         input = object_fixture("amf3-byteArray.bin")
         output = RocketAMF.deserialize(input, 3)

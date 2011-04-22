@@ -344,6 +344,7 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
     } else {
         st_add_direct(ser->obj_cache, ary, LONG2FIX(ser->obj_index));
         ser->obj_index++;
+        if(is_ac) ser->obj_index++; // The array collection source array
     }
 
     // Write out traits and array marker if it's an array collection

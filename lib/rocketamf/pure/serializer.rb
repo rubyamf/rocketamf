@@ -313,6 +313,7 @@ module RocketAMF
           return
         else
           @object_cache.add_obj array
+          @object_cache.add_obj nil if is_ac # The array collection source array
         end
 
         # Write out traits and array marker if it's an array collection

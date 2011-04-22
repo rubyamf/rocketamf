@@ -304,6 +304,19 @@ describe "when serializing" do
         output.should == expected
       end
 
+      it "should serialize a complex set of array collections" do
+        expected = object_fixture('amf3-complexArrayCollection.bin')
+
+        a = ["foo", "bar"]
+        a.is_array_collection = true
+        b = ["bar", "foo"]
+        b.is_array_collection = true
+        input = [a, b, b]
+
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
       it "should serialize a byte array" do
         expected = object_fixture("amf3-byteArray.bin")
         input = StringIO.new "\000\003これtest\100"
