@@ -1,7 +1,9 @@
 #include <ruby.h>
-#include <ruby/st.h>
 #ifdef HAVE_RB_STR_ENCODE
+#include <ruby/st.h>
 #include <ruby/encoding.h>
+#else
+#include <st.h>
 #endif
 
 typedef struct {

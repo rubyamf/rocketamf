@@ -1,5 +1,9 @@
 #include <ruby.h>
+#ifdef HAVE_RB_STR_ENCODE
 #include <ruby/st.h>
+#else
+#include <st.h>
+#endif
 #include "utility.h"
 
 extern VALUE mRocketAMF;
