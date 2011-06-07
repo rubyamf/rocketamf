@@ -6,8 +6,20 @@ module RocketAMF
         %w[ clientIdBytes messageIdBytes ]
       ]
 
-      def to_uuid(obj)
-        "%08X-%04X-%04X-%04X-%08X%04X" % obj.to_s.unpack("NnnnNn")
+      def to_pretty_uuid(obj)
+        if obj.is_a?(StringIO)
+          "%08X-%04X-%04X-%04X-%08X%04X" % obj.string.unpack("NnnnNn")
+        else
+          nil
+        end
+      end
+
+      def to_binary_uuid(obj)
+        if obj.is_a?(String) && obj.size == 36
+          obj.gsub('-','').scan(/../).map {|pair| pair.hex}.pack('C*')
+        else
+          nil
+        end
       end
 
       def populate(source, fields)
@@ -33,13 +45,23 @@ module RocketAMF
         populate(source, ExternalizedFields)
       end
 
+      def clientId=(obj)
+        @clientIdBytes = to_binary_uuid(obj)
+        @clientId = obj
+      end
+
       def clientIdBytes=(obj)
-        @clientId = to_uuid(obj)
+        @clientId = to_pretty_uuid(obj)
         @clientIdBytes = obj
       end
 
+      def messageId=(obj)
+        @messageIdBytes = to_binary_uuid(obj)
+        @messageId = obj
+      end
+
       def messageIdBytes=(obj)
-        @messageId = to_uuid(obj)
+        @messageId = to_pretty_uuid(obj)
         @messageIdBytes = obj
       end
     end
@@ -54,8 +76,13 @@ module RocketAMF
         populate(source, ExternalizedFields)
       end
 
+      def correlationId=(obj)
+        @correlationIdBytes = to_binary_uuid(obj)
+        @correlationId = obj
+      end
+
       def correlationIdBytes=(obj)
-        @correlationId = to_uuid(obj)
+        @correlationId = to_pretty_uuid(obj)
         @correlationIdBytes = obj
       end
     end
