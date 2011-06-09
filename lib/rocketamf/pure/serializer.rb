@@ -382,7 +382,7 @@ module RocketAMF
 
         # If externalizable, take externalized data shortcut
         if traits[:externalizable]
-          obj.write_external(@stream)
+          obj.write_external(self)
           return
         end
 

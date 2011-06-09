@@ -78,9 +78,29 @@ static VALUE mapset_init(VALUE self) {
  * Adds required mapping configs, calling map for the required base mappings
  */
 static VALUE mapset_map_defaults(VALUE self) {
-    const int NUM_MAPPINGS = 6;
-    char* ruby_classes[] = {"RocketAMF::Values::AbstractMessage", "RocketAMF::Values::RemotingMessage", "RocketAMF::Values::AsyncMessage", "RocketAMF::Values::CommandMessage", "RocketAMF::Values::AcknowledgeMessage", "RocketAMF::Values::ErrorMessage"};
-    char* as_classes[] = {"flex.messaging.messages.AbstractMessage", "flex.messaging.messages.RemotingMessage", "flex.messaging.messages.AsyncMessage", "flex.messaging.messages.CommandMessage", "flex.messaging.messages.AcknowledgeMessage", "flex.messaging.messages.ErrorMessage"};
+    const int NUM_MAPPINGS = 9;
+    char* ruby_classes[] = {
+        "RocketAMF::Values::AbstractMessage",
+        "RocketAMF::Values::RemotingMessage",
+        "RocketAMF::Values::AsyncMessage",
+        "RocketAMF::Values::AsyncMessageExt",
+        "RocketAMF::Values::CommandMessage",
+        "RocketAMF::Values::CommandMessageExt",
+        "RocketAMF::Values::AcknowledgeMessage",
+        "RocketAMF::Values::AcknowledgeMessageExt",
+        "RocketAMF::Values::ErrorMessage"
+    };
+    char* as_classes[] = {
+        "flex.messaging.messages.AbstractMessage",
+        "flex.messaging.messages.RemotingMessage",
+        "flex.messaging.messages.AsyncMessage",
+        "DSA",
+        "flex.messaging.messages.CommandMessage",
+        "DSC",
+        "flex.messaging.messages.AcknowledgeMessage",
+        "DSK",
+        "flex.messaging.messages.ErrorMessage"
+    };
 
     int i;
     ID map_id = rb_intern("map");

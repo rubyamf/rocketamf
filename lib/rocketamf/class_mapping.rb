@@ -17,8 +17,11 @@ module RocketAMF
       map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'RocketAMF::Values::AbstractMessage'
       map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'RocketAMF::Values::RemotingMessage'
       map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'RocketAMF::Values::AsyncMessage'
+      map :as => 'DSA', :ruby => 'RocketAMF::Values::AsyncMessageExt'
       map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'RocketAMF::Values::CommandMessage'
+      map :as => 'DSC', :ruby => 'RocketAMF::Values::CommandMessageExt'
       map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'RocketAMF::Values::AcknowledgeMessage'
+      map :as => 'DSK', :ruby => 'RocketAMF::Values::AcknowledgeMessageExt'
       map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'RocketAMF::Values::ErrorMessage'
       self
     end

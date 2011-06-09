@@ -40,6 +40,15 @@ module RocketAMF
         end
       end
 
+      # Reads an object from the deserializer's stream and returns it.
+      def read_object
+        if @version == 0
+          return amf0_deserialize
+        else
+          return amf3_deserialize
+        end
+      end
+
       private
       include RocketAMF::Pure::ReadIOHelpers
 
@@ -359,7 +368,7 @@ module RocketAMF
           @object_cache << obj
 
           if traits[:externalizable]
-            obj.read_external @source
+            obj.read_external self
           else
             props = {}
             traits[:members].each do |key|

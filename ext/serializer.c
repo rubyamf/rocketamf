@@ -467,7 +467,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
 
     // Raise exception if marked externalizable
     if(externalizable == Qtrue) {
-        rb_funcall(obj, rb_intern("write_external"), 1, ser->stream);
+        rb_funcall(obj, rb_intern("write_external"), 1, self);
         return self;
     }
 

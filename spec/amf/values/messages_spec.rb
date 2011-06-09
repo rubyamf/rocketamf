@@ -8,6 +8,14 @@ describe RocketAMF::Values::AbstractMessage do
   it "should generate conforming uuids" do
     @message.send(:rand_uuid).should =~ /[A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12}/i
   end
+
+  it "should read externalized shortened BlazeDS messages" do
+    env = create_envelope('blaze-response.bin')
+    msg = env.messages[0].data
+    msg.class.name.should == "RocketAMF::Values::AcknowledgeMessageExt"
+    msg.clientId.should == "8814a067-fe0d-3a9c-a274-4aaed9bd7b0b"
+    msg.body.should =~ /xmlsoap\.org/
+  end
 end
 
 describe RocketAMF::Values::ErrorMessage do

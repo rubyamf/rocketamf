@@ -14,8 +14,8 @@ extern VALUE sym_dynamic;
 ID id_get_ruby_obj;
 ID id_populate_ruby_obj;
 
-static VALUE des0_deserialize(AMF_DESERIALIZER *des, char type);
-static VALUE des3_deserialize(AMF_DESERIALIZER *des);
+static VALUE des0_deserialize(VALUE self, char type);
+static VALUE des3_deserialize(VALUE self);
 
 char des_read_byte(AMF_DESERIALIZER *des) {
     DES_BOUNDS_CHECK(des, 1);
@@ -154,18 +154,23 @@ void des_set_src(AMF_DESERIALIZER *des, VALUE src) {
  * Create AMF3 deserializer and copy source data over to it, before calling
  * AMF3 internal deserialize function
  */
-static VALUE des0_read_amf3(AMF_DESERIALIZER *des) {
+static VALUE des0_read_amf3(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
     des->version = 3;
     des->str_cache = rb_ary_new();
     des->trait_cache = rb_ary_new();
-    return des3_deserialize(des);
+    return des3_deserialize(self);
 }
 
 /*
  * Reads an AMF0 hash, with a configurable key reading function - either
  * des_read_string or des_read_sym
  */
-static void des0_read_props(AMF_DESERIALIZER *des, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, long)) {
+static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, long)) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     while(1) {
         int len = des_read_uint16(des);
         if(len == 0) {
@@ -174,25 +179,31 @@ static void des0_read_props(AMF_DESERIALIZER *des, VALUE hash, VALUE(*read_key)(
         } else {
             VALUE key = read_key(des, len);
             char type = des_read_byte(des);
-            rb_hash_aset(hash, key, des0_deserialize(des, type));
+            rb_hash_aset(hash, key, des0_deserialize(self, type));
         }
     }
 }
 
-static VALUE des0_read_object(AMF_DESERIALIZER *des) {
+static VALUE des0_read_object(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     // Create object and add to cache
     VALUE obj = rb_funcall(des->class_mapper, id_get_ruby_obj, 1, rb_str_new(NULL, 0));
     rb_ary_push(des->obj_cache, obj);
 
     // Populate object
     VALUE props = rb_hash_new();
-    des0_read_props(des, props, des_read_sym);
+    des0_read_props(self, props, des_read_sym);
     rb_funcall(des->class_mapper, id_populate_ruby_obj, 2, obj, props);
 
     return obj;
 }
 
-static VALUE des0_read_typed_object(AMF_DESERIALIZER *des) {
+static VALUE des0_read_typed_object(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     // Create object and add to cache
     VALUE class_name = des_read_string(des, des_read_uint16(des));
     VALUE obj = rb_funcall(des->class_mapper, id_get_ruby_obj, 1, class_name);
@@ -200,21 +211,26 @@ static VALUE des0_read_typed_object(AMF_DESERIALIZER *des) {
 
     // Populate object
     VALUE props = rb_hash_new();
-    des0_read_props(des, props, des_read_sym);
+    des0_read_props(self, props, des_read_sym);
     rb_funcall(des->class_mapper, id_populate_ruby_obj, 2, obj, props);
 
     return obj;
 }
 
-static VALUE des0_read_hash(AMF_DESERIALIZER *des) {
+static VALUE des0_read_hash(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
     des_read_uint32(des); // Hash size, but there's no optimization I can perform with this
     VALUE obj = rb_hash_new();
     rb_ary_push(des->obj_cache, obj);
-    des0_read_props(des, obj, des_read_string);
+    des0_read_props(self, obj, des_read_string);
     return obj;
 }
 
-static VALUE des0_read_array(AMF_DESERIALIZER *des) {
+static VALUE des0_read_array(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     // Limit size of pre-allocation to force remote user to actually send data,
     // rather than just sending a size of 2**32-1 and nothing afterwards to
     // crash the server
@@ -224,13 +240,15 @@ static VALUE des0_read_array(AMF_DESERIALIZER *des) {
 
     long i;
     for(i = 0; i < len; i++) {
-        rb_ary_push(ary, des0_deserialize(des, des_read_byte(des)));
+        rb_ary_push(ary, des0_deserialize(self, des_read_byte(des)));
     }
 
     return ary;
 }
 
-static VALUE des0_read_time(AMF_DESERIALIZER *des) {
+static VALUE des0_read_time(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
     double milli = des_read_double(des);
     des_read_uint16(des); // Timezone - unused
     time_t sec = milli/1000.0;
@@ -242,7 +260,10 @@ static VALUE des0_read_time(AMF_DESERIALIZER *des) {
  * Internal C deserialize call. Takes deserializer and a char for the type
  * marker.
  */
-static VALUE des0_deserialize(AMF_DESERIALIZER *des, char type) {
+static VALUE des0_deserialize(VALUE self, char type) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     long tmp;
     VALUE ret = Qnil;
     switch(type) {
@@ -250,7 +271,7 @@ static VALUE des0_deserialize(AMF_DESERIALIZER *des, char type) {
             ret = des_read_string(des, des_read_uint16(des));
             break;
         case AMF0_AMF3_MARKER:
-            ret = des0_read_amf3(des);
+            ret = des0_read_amf3(self);
             break;
         case AMF0_NUMBER_MARKER:
             ret = rb_float_new(des_read_double(des));
@@ -264,16 +285,16 @@ static VALUE des0_deserialize(AMF_DESERIALIZER *des, char type) {
             ret = Qnil;
             break;
         case AMF0_OBJECT_MARKER:
-            ret = des0_read_object(des);
+            ret = des0_read_object(self);
             break;
         case AMF0_TYPED_OBJECT_MARKER:
-            ret = des0_read_typed_object(des);
+            ret = des0_read_typed_object(self);
             break;
         case AMF0_HASH_MARKER:
-            ret = des0_read_hash(des);
+            ret = des0_read_hash(self);
             break;
         case AMF0_STRICT_ARRAY_MARKER:
-            ret = des0_read_array(des);
+            ret = des0_read_array(self);
             break;
         case AMF0_REFERENCE_MARKER:
             tmp = des_read_uint16(des);
@@ -281,7 +302,7 @@ static VALUE des0_deserialize(AMF_DESERIALIZER *des, char type) {
             ret = RARRAY_PTR(des->obj_cache)[tmp];
             break;
         case AMF0_DATE_MARKER:
-            ret = des0_read_time(des);
+            ret = des0_read_time(self);
             break;
         case AMF0_XML_MARKER:
         case AMF0_LONG_STRING_MARKER:
@@ -312,7 +333,10 @@ static VALUE des3_read_string(AMF_DESERIALIZER *des) {
  * Same as des3_read_string, but XML uses the object cache, rather than the
  * string cache
  */
-static VALUE des3_read_xml(AMF_DESERIALIZER *des) {
+static VALUE des3_read_xml(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     int header = des_read_int(des);
     if((header & 1) == 0) {
         header >>= 1;
@@ -325,7 +349,10 @@ static VALUE des3_read_xml(AMF_DESERIALIZER *des) {
     }
 }
 
-static VALUE des3_read_object(AMF_DESERIALIZER *des) {
+static VALUE des3_read_object(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     int header = des_read_int(des);
     if((header & 1) == 0) {
         header >>= 1;
@@ -365,7 +392,7 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
 
         // Optimization for deserializing ArrayCollection
         if(strcmp(RSTRING_PTR(class_name), "flex.messaging.io.ArrayCollection") == 0) {
-            VALUE arr = des3_deserialize(des); // Adds ArrayCollection array to object cache automatically
+            VALUE arr = des3_deserialize(self); // Adds ArrayCollection array to object cache automatically
             rb_ary_push(des->obj_cache, arr); // Add again for ArrayCollection source array
             return arr;
         }
@@ -375,14 +402,14 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
 
         if(externalizable == Qtrue) {
             rb_funcall(des->src, rb_intern("pos="), 1, LONG2NUM(des->pos)); // Update source StringIO pos
-            rb_funcall(obj, rb_intern("read_external"), 1, des->src);
+            rb_funcall(obj, rb_intern("read_external"), 1, self);
             des->pos = NUM2LONG(rb_funcall(des->src, rb_intern("pos"), 0)); // Update from source
             return obj;
         }
 
         VALUE props = rb_hash_new();
         for(i = 0; i < members_len; i++) {
-            rb_hash_aset(props, rb_str_intern(RARRAY_PTR(members)[i]), des3_deserialize(des));
+            rb_hash_aset(props, rb_str_intern(RARRAY_PTR(members)[i]), des3_deserialize(self));
         }
 
         VALUE dynamic_props = Qnil;
@@ -391,7 +418,7 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
             while(1) {
                 VALUE key = des3_read_string(des);
                 if(RSTRING_LEN(key) == 0) break;
-                rb_hash_aset(dynamic_props, rb_str_intern(key), des3_deserialize(des));
+                rb_hash_aset(dynamic_props, rb_str_intern(key), des3_deserialize(self));
             }
         }
 
@@ -401,7 +428,10 @@ static VALUE des3_read_object(AMF_DESERIALIZER *des) {
     }
 }
 
-static VALUE des3_read_array(AMF_DESERIALIZER *des) {
+static VALUE des3_read_array(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     int i;
     int header = des_read_int(des);
     if((header & 1) == 0) {
@@ -417,11 +447,11 @@ static VALUE des3_read_array(AMF_DESERIALIZER *des) {
             obj = rb_hash_new();
             rb_ary_push(des->obj_cache, obj);
             while(RSTRING_LEN(key) != 0) {
-                rb_hash_aset(obj, key, des3_deserialize(des));
+                rb_hash_aset(obj, key, des3_deserialize(self));
                 key = des3_read_string(des);
             }
             for(i = 0; i < header; i++) {
-                rb_hash_aset(obj, rb_fix2str(INT2FIX(i), 10), des3_deserialize(des));
+                rb_hash_aset(obj, rb_fix2str(INT2FIX(i), 10), des3_deserialize(self));
             }
         } else {
             // Limit size of pre-allocation to force remote user to actually send data,
@@ -430,14 +460,17 @@ static VALUE des3_read_array(AMF_DESERIALIZER *des) {
             obj = rb_ary_new2(header < MAX_ARRAY_PREALLOC ? header : MAX_ARRAY_PREALLOC);
             rb_ary_push(des->obj_cache, obj);
             for(i = 0; i < header; i++) {
-                rb_ary_push(obj, des3_deserialize(des));
+                rb_ary_push(obj, des3_deserialize(self));
             }
         }
         return obj;
     }
 }
 
-static VALUE des3_read_time(AMF_DESERIALIZER *des) {
+static VALUE des3_read_time(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     int header = des_read_int(des);
     if((header & 1) == 0) {
         header >>= 1;
@@ -453,7 +486,10 @@ static VALUE des3_read_time(AMF_DESERIALIZER *des) {
     }
 }
 
-static VALUE des3_read_byte_array(AMF_DESERIALIZER *des) {
+static VALUE des3_read_byte_array(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     int header = des_read_int(des);
     if((header & 1) == 0) {
         header >>= 1;
@@ -474,7 +510,10 @@ static VALUE des3_read_byte_array(AMF_DESERIALIZER *des) {
     }
 }
 
-static VALUE des3_read_dict(AMF_DESERIALIZER *des) {
+static VALUE des3_read_dict(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     int header = des_read_int(des);
     if((header & 1) == 0) {
         header >>= 1;
@@ -490,8 +529,8 @@ static VALUE des3_read_dict(AMF_DESERIALIZER *des) {
 
         int i;
         for(i = 0; i < header; i++) {
-            VALUE key = des3_deserialize(des);
-            VALUE val = des3_deserialize(des);
+            VALUE key = des3_deserialize(self);
+            VALUE val = des3_deserialize(self);
             rb_hash_aset(dict, key, val);
         }
 
@@ -504,7 +543,10 @@ static VALUE des3_read_dict(AMF_DESERIALIZER *des) {
  * itself, due to minor changes in the specs that make that modification
  * unnecessary.
  */
-static VALUE des3_deserialize(AMF_DESERIALIZER *des) {
+static VALUE des3_deserialize(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
     char type = des_read_byte(des);
     VALUE ret = Qnil;
     switch(type) {
@@ -528,23 +570,23 @@ static VALUE des3_deserialize(AMF_DESERIALIZER *des) {
             ret = des3_read_string(des);
             break;
         case AMF3_ARRAY_MARKER:
-            ret = des3_read_array(des);
+            ret = des3_read_array(self);
             break;
         case AMF3_OBJECT_MARKER:
-            ret = des3_read_object(des);
+            ret = des3_read_object(self);
             break;
         case AMF3_DATE_MARKER:
-            ret = des3_read_time(des);
+            ret = des3_read_time(self);
             break;
         case AMF3_XML_DOC_MARKER:
         case AMF3_XML_MARKER:
-            ret = des3_read_xml(des);
+            ret = des3_read_xml(self);
             break;
         case AMF3_BYTE_ARRAY_MARKER:
-            ret = des3_read_byte_array(des);
+            ret = des3_read_byte_array(self);
             break;
         case AMF3_DICT_MARKER:
-            ret = des3_read_dict(des);
+            ret = des3_read_dict(self);
             break;
         default:
             rb_raise(rb_eRuntimeError, "Not supported: %d", type);
@@ -632,12 +674,39 @@ VALUE des_deserialize(VALUE self, VALUE ver, VALUE src) {
     VALUE ret;
     if(des->version == 0) {
         des->obj_cache = rb_ary_new();
-        ret = des0_deserialize(des, des_read_byte(des));
+        ret = des0_deserialize(self, des_read_byte(des));
     } else {
         des->obj_cache = rb_ary_new();
         des->str_cache = rb_ary_new();
         des->trait_cache = rb_ary_new();
-        ret = des3_deserialize(des);
+        ret = des3_deserialize(self);
+    }
+
+    // Update source position
+    rb_funcall(des->src, rb_intern("pos="), 1, LONG2NUM(des->pos)); // Update source StringIO pos
+
+    return ret;
+}
+
+/*
+ * call-seq:
+ *   des.read_object => obj
+ *
+ * Reads an object from the deserializer's stream and returns it.
+ */
+VALUE des_read_object(VALUE self) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
+    // Update internal pos from source in case they've modified it
+    des->pos = NUM2LONG(rb_funcall(des->src, rb_intern("pos"), 0));
+
+    // Deserialize
+    VALUE ret;
+    if(des->version == 0) {
+        ret = des0_deserialize(self, des_read_byte(des));
+    } else {
+        ret = des3_deserialize(self);
     }
 
     // Update source position
@@ -653,6 +722,7 @@ void Init_rocket_amf_deserializer() {
     rb_define_method(cDeserializer, "initialize", des_initialize, 1);
     rb_define_method(cDeserializer, "source", des_source, 0);
     rb_define_method(cDeserializer, "deserialize", des_deserialize, 2);
+    rb_define_method(cDeserializer, "read_object", des_read_object, 0);
 
     // Get refs to commonly used symbols and ids
     id_get_ruby_obj = rb_intern("get_ruby_obj");

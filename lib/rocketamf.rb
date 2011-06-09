@@ -165,17 +165,14 @@ require 'rocketamf/remoting'
 #       end
 #     end
 #   
-#     # Force it to be converted to an array so we don't get into an endless loop,
-#     # serialize, and append to data stream
-#     def write_external stream
-#       serialized = RocketAMF.serialize([]+self, 3)
-#       stream << serialized
+#     # Write self as array to stream
+#     def write_external ser
+#       ser.write_array(self)
 #     end
 #   
-#     # Read array out and replace data with deserialized array. Source is always
-#     # a StringIO object.
-#     def read_external source
-#       replace RocketAMF.deserialize(source, 3)
+#     # Read array out and replace data with deserialized array.
+#     def read_external des
+#       replace(des.read_object)
 #     end
 #   end
 module RocketAMF
