@@ -67,6 +67,34 @@ module RocketAMF
       end
     end
 
+    # Maps to <tt>flex.messaging.messages.HTTPMessage</tt>
+    class HTTPMessage < AbstractMessage
+      attr_accessor :contentType
+      attr_accessor :method_
+      attr_accessor :url
+      attr_accessor :httpHeaders
+      attr_accessor :recordHeaders
+
+      def initialize
+        @destination = nil
+        @messageId = rand_uuid
+        @timestamp = Time.new.to_i*100
+        @timeToLive = 0
+        @headers = {}
+        @body = nil
+        @method_ = "GET"
+      end
+    end
+
+    # Maps to <tt>flex.messaging.messages.SOAPMessage</tt>
+    class SOAPMessage < HTTPMessage
+      def initialize
+        super
+        @contentType = "text/xml; charset=utf-8"
+        @method_ = "POST"
+      end
+    end
+
     # Maps to <tt>flex.messaging.messages.RemotingMessage</tt>
     class RemotingMessage < AbstractMessage
       # The name of the service to be called including package name

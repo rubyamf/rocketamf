@@ -17,12 +17,17 @@ module RocketAMF
       map :as => 'flex.messaging.messages.AbstractMessage', :ruby => 'RocketAMF::Values::AbstractMessage'
       map :as => 'flex.messaging.messages.RemotingMessage', :ruby => 'RocketAMF::Values::RemotingMessage'
       map :as => 'flex.messaging.messages.AsyncMessage', :ruby => 'RocketAMF::Values::AsyncMessage'
-      map :as => 'DSA', :ruby => 'RocketAMF::Values::AsyncMessageExt'
       map :as => 'flex.messaging.messages.CommandMessage', :ruby => 'RocketAMF::Values::CommandMessage'
-      map :as => 'DSC', :ruby => 'RocketAMF::Values::CommandMessageExt'
       map :as => 'flex.messaging.messages.AcknowledgeMessage', :ruby => 'RocketAMF::Values::AcknowledgeMessage'
-      map :as => 'DSK', :ruby => 'RocketAMF::Values::AcknowledgeMessageExt'
       map :as => 'flex.messaging.messages.ErrorMessage', :ruby => 'RocketAMF::Values::ErrorMessage'
+
+      map :as => 'flex.messaging.messages.HTTPMessage', :ruby => 'RocketAMF::Values::HTTPMessage'
+      map :as => 'flex.messaging.messages.SOAPMessage', :ruby => 'RocketAMF::Values::SOAPMessage'
+
+      map :as => 'DSA', :ruby => 'RocketAMF::Values::AsyncMessageExt'
+      map :as => 'DSC', :ruby => 'RocketAMF::Values::CommandMessageExt'
+      map :as => 'DSK', :ruby => 'RocketAMF::Values::AcknowledgeMessageExt'
+
       self
     end
 
@@ -229,8 +234,9 @@ module RocketAMF
       (ruby_obj.public_methods - @ignored_props).each do |method_name|
         # Add them to the prop hash if they take no arguments
         method_def = ruby_obj.method(method_name)
-        props[method_name.to_s] = ruby_obj.send(method_name) if method_def.arity == 0
-      end
+#        props[method_name.to_s] = ruby_obj.send(method_name) if method_def.arity == 0
+        props[method_name.to_s.chomp('_')] = ruby_obj.send(method_name) if method_def.arity == 0
+     end
       props
     end
   end
