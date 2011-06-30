@@ -1,5 +1,4 @@
 require "spec_helper.rb"
-require 'rocketamf_ext'
 
 describe RocketAMF::Ext::FastClassMapping do
   before :each do
@@ -85,6 +84,17 @@ describe RocketAMF::Ext::FastClassMapping do
   end
 
   describe "property extractor" do
+    # Use symbol keys for properties in Ruby >1.9
+    def prop_hash hash
+      out = {}
+      if RUBY_VERSION =~ /^1\.8/
+        hash.each {|k,v| out[k.to_s] = v}
+      else
+        hash.each {|k,v| out[k.to_sym] = v}
+      end
+      out
+    end
+
     it "should return hash without modification" do
       hash = {:a => 'test1', 'b' => 'test2'}
       props = @mapper.props_for_serialization(hash)
@@ -96,7 +106,7 @@ describe RocketAMF::Ext::FastClassMapping do
       obj.prop_a = 'Test A'
 
       hash = @mapper.props_for_serialization obj
-      hash.should == {'prop_a' => 'Test A', 'prop_b' => nil}
+      hash.should == prop_hash({'prop_a' => 'Test A', 'prop_b' => nil})
     end
 
     it "should extract inherited object properties" do
@@ -105,7 +115,7 @@ describe RocketAMF::Ext::FastClassMapping do
       obj.prop_c = 'Test C'
 
       hash = @mapper.props_for_serialization obj
-      hash.should == {'prop_a' => 'Test A', 'prop_b' => nil, 'prop_c' => 'Test C'}
+      hash.should == prop_hash({'prop_a' => 'Test A', 'prop_b' => nil, 'prop_c' => 'Test C'})
     end
 
     it "should cache property lookups by instance" do
@@ -123,12 +133,12 @@ describe RocketAMF::Ext::FastClassMapping do
       obj.prop_a = 'Test A'
       obj.prop_b = 'Test B'
       hash = @mapper.props_for_serialization obj
-      hash.should == {'prop_a' => 'Test A'}
+      hash.should == prop_hash({'prop_a' => 'Test A'})
 
       # Test that new class mapper *does* have new property (cache per instance)
       @mapper = RocketAMF::Ext::FastClassMapping.new
       hash = @mapper.props_for_serialization obj
-      hash.should == {'prop_a' => 'Test A', 'prop_b' => 'Test B'}
+      hash.should == prop_hash({'prop_a' => 'Test A', 'prop_b' => 'Test B'})
     end
   end
 end

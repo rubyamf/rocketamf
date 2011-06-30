@@ -3,6 +3,7 @@ require 'rake'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
 require 'spec/rake/spectask'
+require 'rake/extensiontask'
 
 desc 'Default: run the specs.'
 task :default => :spec
@@ -34,6 +35,25 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
 end
 
 Rake::GemPackageTask.new(spec) do |pkg|
-  pkg.need_tar = true
-  pkg.need_zip = true
+  pkg.need_zip = false
+  pkg.need_tar = false
+end
+
+Rake::ExtensionTask.new('rocketamf_ext', spec) do |ext|
+  if RUBY_PLATFORM =~ /mswin|mingw/ then
+    # No cross-compile on win, so compile extension to lib/1.[89]
+    RUBY_VERSION =~ /(\d+\.\d+)/
+    ext.lib_dir = "lib/#{$1}"
+  else
+    ext.cross_compile = true
+    ext.cross_platform = 'x86-mingw32'
+    ext.cross_compiling do |gem_spec|
+      gem_spec.post_install_message = "You installed the binary version of this gem!"
+    end
+  end
+end
+
+desc "Build gem packages"
+task :gems do
+  sh "rake cross native gem RUBY_CC_VERSION=1.8.7:1.9.2"
 end

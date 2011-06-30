@@ -1,4 +1,10 @@
-require 'rocketamf_ext'
+begin
+  # Fat binaries for Windows
+  RUBY_VERSION =~ /(\d+.\d+)/
+  require "#{$1}/rocketamf_ext"
+rescue LoadError
+  require "rocketamf_ext"
+end
 
 module RocketAMF
   # This module holds all the modules/classes that implement AMF's functionality

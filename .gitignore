@@ -2,9 +2,7 @@ pkg/*
 .loadpath
 .project
 /rdoc/
-/ext/*.o
-/ext/Makefile
-/ext/*.bundle
-/ext/*.so
-/ext/*.dll
-/ext/*.log
+*.bundle
+*.so
+*.dll
+/tmp

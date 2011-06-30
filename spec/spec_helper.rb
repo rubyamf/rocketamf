@@ -7,19 +7,18 @@ rescue LoadError
 end
 require 'spec/autorun'
 
-$:.unshift(File.dirname(__FILE__) + '/../ext')
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'rocketamf'
 require 'rocketamf/pure/io_helpers' # Just to make sure they get loaded
 
 def request_fixture(binary_path)
-  data = File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path).read
+  data = File.open(File.dirname(__FILE__) + '/fixtures/request/' + binary_path, "rb").read
   data.force_encoding("ASCII-8BIT") if data.respond_to?(:force_encoding)
   data
 end
 
 def object_fixture(binary_path)
-  data = File.open(File.dirname(__FILE__) + '/fixtures/objects/' + binary_path).read
+  data = File.open(File.dirname(__FILE__) + '/fixtures/objects/' + binary_path, "rb").read
   data.force_encoding("ASCII-8BIT") if data.respond_to?(:force_encoding)
   data
 end

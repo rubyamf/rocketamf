@@ -319,7 +319,9 @@ describe "when serializing" do
 
       it "should serialize a byte array" do
         expected = object_fixture("amf3-byteArray.bin")
-        input = StringIO.new "\000\003これtest\100"
+        str = "\000\003これtest\100"
+        str.force_encoding("ASCII-8BIT") if str.respond_to?(:force_encoding)
+        input = StringIO.new(str)
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
