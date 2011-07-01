@@ -1,7 +1,7 @@
 #include "deserializer.h"
 #include "constants.h"
 
-#define DES_BOUNDS_CHECK(des, i) if(des->pos + (i) > des->size) rb_raise(rb_eRangeError, "reading %ld bytes is beyond end of source: %ld (pos), %ld (size)", (long)(i), des->pos, des->size);
+#define DES_BOUNDS_CHECK(des, i) if(des->pos + (i) > des->size || des->pos + (i) < des->pos) rb_raise(rb_eRangeError, "reading %lu bytes is beyond end of source: %ld (pos), %ld (size)", (unsigned long)(i), des->pos, des->size);
 
 extern VALUE mRocketAMF;
 extern VALUE mRocketAMFExt;
@@ -30,7 +30,7 @@ int des_read_uint16(AMF_DESERIALIZER *des) {
     return ((str[0] << 8) | str[1]);
 }
 
-long des_read_uint32(AMF_DESERIALIZER *des) {
+unsigned long des_read_uint32(AMF_DESERIALIZER *des) {
     DES_BOUNDS_CHECK(des, 4);
     const unsigned char *str = des->stream + des->pos;
     des->pos += 4;
@@ -98,7 +98,7 @@ int des_read_int(AMF_DESERIALIZER *des) {
 /*
  * Read a string and then force the encoding to UTF 8 if running ruby 1.9
  */
-VALUE des_read_string(AMF_DESERIALIZER *des, long len) {
+VALUE des_read_string(AMF_DESERIALIZER *des, unsigned long len) {
     DES_BOUNDS_CHECK(des, len);
     VALUE str = rb_str_new(des->stream + des->pos, len);
 #ifdef HAVE_RB_STR_ENCODE
@@ -115,7 +115,7 @@ VALUE des_read_string(AMF_DESERIALIZER *des, long len) {
  * C strings, this function does the lookup without requiring any additional
  * allocations.
  */
-VALUE des_read_sym(AMF_DESERIALIZER *des, long len) {
+VALUE des_read_sym(AMF_DESERIALIZER *des, unsigned long len) {
     DES_BOUNDS_CHECK(des, len);
     char end = des->stream[des->pos+len];
     des->stream[des->pos+len] = '\0';
@@ -167,7 +167,7 @@ static VALUE des0_read_amf3(VALUE self) {
  * Reads an AMF0 hash, with a configurable key reading function - either
  * des_read_string or des_read_sym
  */
-static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, long)) {
+static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, unsigned long)) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
 
@@ -234,7 +234,7 @@ static VALUE des0_read_array(VALUE self) {
     // Limit size of pre-allocation to force remote user to actually send data,
     // rather than just sending a size of 2**32-1 and nothing afterwards to
     // crash the server
-    long len = des_read_uint32(des);
+    unsigned long len = des_read_uint32(des);
     VALUE ary = rb_ary_new2(len < MAX_ARRAY_PREALLOC ? len : MAX_ARRAY_PREALLOC);
     rb_ary_push(des->obj_cache, ary);
 

@@ -17,11 +17,11 @@ typedef struct {
 
 char des_read_byte(AMF_DESERIALIZER *des);
 int des_read_uint16(AMF_DESERIALIZER *des);
-long des_read_uint32(AMF_DESERIALIZER *des);
+unsigned long des_read_uint32(AMF_DESERIALIZER *des);
 double des_read_double(AMF_DESERIALIZER *des);
 int des_read_int(AMF_DESERIALIZER *des);
-VALUE des_read_string(AMF_DESERIALIZER *des, long len);
-VALUE des_read_sym(AMF_DESERIALIZER *des, long len);
+VALUE des_read_string(AMF_DESERIALIZER *des, unsigned long len);
+VALUE des_read_sym(AMF_DESERIALIZER *des, unsigned long len);
 void des_set_src(AMF_DESERIALIZER *des, VALUE src);
 
 VALUE des_deserialize(VALUE self, VALUE ver, VALUE src);
