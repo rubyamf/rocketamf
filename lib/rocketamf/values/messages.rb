@@ -75,11 +75,8 @@ module RocketAMF
       # The name of the method to be called
       attr_accessor :operation
 
-      # The arguments to call the method with
-      attr_accessor :parameters
-
       def initialize
-        @clientId = rand_uuid
+        @clientId = nil
         @destination = nil
         @messageId = rand_uuid
         @timestamp = Time.new.to_i*100

@@ -21,6 +21,47 @@ module RocketAMF
       raise AMFError, 'Must load "rocketamf/pure"'
     end
 
+    # Creates the appropriate message and adds it to messages to call the given
+    # target using the standard remoting APIs. You can call multiple targets in
+    # the same request, unlike with the flex remotings APIs.
+    #
+    # Example:
+    #
+    #    req = RocketAMF::Envelope.new
+    #    req.call 'test', "arg_1", ["args", "args"]
+    #    req.call 'Controller.action'
+    def call target, *args
+      raise "Cannot use different call types" unless @call_type.nil? || @call_type == :simple
+      @call_type = :simple
+
+      msg_num = messages.length+1
+      @messages << RocketAMF::Message.new(target, "/#{msg_num}", args)
+    end
+
+    # Creates the appropriate message and adds it to messages using the new
+    # flex remoting APIs. You can only make one flex remoting call per envelope.
+    #
+    # Example:
+    #
+    #    req = RocketAMF::Envelope.new
+    #    req.call_flex 'Controller.action', "arg_1", ["args", "args"]
+    def call_flex target, *args
+      raise "Can only call one flex target per request" if @call_type == :flex
+      raise "Cannot use different call types" if @call_type == :simple
+      raise "Cannot use flex remoting calls with AMF0" if @amf_version != 3
+
+      target_parts = target.split(".")
+      raise "Target must include source and operation: #{target}" if target_parts.length != 2
+
+      @call_type = :flex
+
+      flex_msg = RocketAMF::Values::RemotingMessage.new
+      flex_msg.source = target_parts[0]
+      flex_msg.operation = target_parts[1]
+      flex_msg.body = args
+      @messages << RocketAMF::Message.new('null', '/2', flex_msg) # /2 because it always sends a command message before
+    end
+
     # Serializes the envelope to a string using the given class mapper, or creates
     # a new one, and returns the result
     #--
