@@ -21,9 +21,9 @@ module RocketAMF
       raise AMFError, 'Must load "rocketamf/pure"'
     end
 
-    # Creates the appropriate message and adds it to messages to call the given
-    # target using the standard remoting APIs. You can call multiple targets in
-    # the same request, unlike with the flex remotings APIs.
+    # Creates the appropriate message and adds it to <tt>messages</tt> to call
+    # the given target using the standard (old) remoting APIs. You can call multiple
+    # targets in the same request, unlike with the flex remotings APIs.
     #
     # Example:
     #
@@ -38,8 +38,9 @@ module RocketAMF
       @messages << RocketAMF::Message.new(target, "/#{msg_num}", args)
     end
 
-    # Creates the appropriate message and adds it to messages using the new
-    # flex remoting APIs. You can only make one flex remoting call per envelope.
+    # Creates the appropriate message and adds it to <tt>messages</tt> using the
+    # new flex (RemoteObject) remoting APIs. You can only make one flex remoting
+    # call per envelope, and the AMF version must be set to 3.
     #
     # Example:
     #
@@ -49,15 +50,12 @@ module RocketAMF
       raise "Can only call one flex target per request" if @call_type == :flex
       raise "Cannot use different call types" if @call_type == :simple
       raise "Cannot use flex remoting calls with AMF0" if @amf_version != 3
-
-      target_parts = target.split(".")
-      raise "Target must include source and operation: #{target}" if target_parts.length != 2
-
       @call_type = :flex
 
       flex_msg = RocketAMF::Values::RemotingMessage.new
-      flex_msg.source = target_parts[0]
-      flex_msg.operation = target_parts[1]
+      target_parts = target.split(".")
+      flex_msg.operation = target_parts.pop # Use pop so that a missing source is possible without issues
+      flex_msg.source = target_parts.pop
       flex_msg.body = args
       @messages << RocketAMF::Message.new('null', '/2', flex_msg) # /2 because it always sends a command message before
     end
@@ -71,7 +69,8 @@ module RocketAMF
     end
 
     # Builds response from the request, iterating over each method call and using
-    # the return value as the method call's return value
+    # the return value as the method call's return value. Marks as envelope as
+    # constructed after running.
     #--
     # Iterate over all the sent messages. If they're somthing we can handle, like
     # a command message, then simply add the response message ourselves. If it's
@@ -124,6 +123,32 @@ module RocketAMF
       end
 
       @constructed = true
+    end
+
+    # Returns the result of a response envelope, or an array of results if there
+    # are multiple action call messages. It automatically unwraps flex-style
+    # RemoteObject response messages, where the response result is inside a
+    # RocketAMF::Values::AcknowledgeMessage.
+    #
+    # Example:
+    #
+    #    req = RocketAMF::Envelope.new
+    #    req.call('TestController.test', 'first_arg', 'second_arg')
+    #    res = RocketAMF::Envelope.new
+    #    res.each_method_call req do |method, args|
+    #      ['a', 'b']
+    #    end
+    #    res.result     #=> ['a', 'b']
+    def result
+      results = []
+      messages.each do |msg|
+        if msg.data.is_a?(Values::AcknowledgeMessage)
+          results << msg.data.body
+        else
+          results << msg.data
+        end
+      end
+      results.length > 1 ? results : results[0]
     end
 
     # Whether or not the response has been constructed. Can be used to prevent
