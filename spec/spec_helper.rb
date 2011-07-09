@@ -1,11 +1,6 @@
-begin
-  require 'spec'
-rescue LoadError
-  require 'rubygems'
-  gem 'rspec'
-  require 'spec'
-end
-require 'spec/autorun'
+require 'rubygems'
+require 'rspec'
+require 'rspec/autorun'
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'rocketamf'

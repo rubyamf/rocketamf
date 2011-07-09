@@ -2,7 +2,7 @@ require 'rubygems'
 require 'rake'
 require 'rake/rdoctask'
 require 'rake/gempackagetask'
-require 'spec/rake/spectask'
+require 'rspec/core/rake_task'
 require 'rake/extensiontask'
 
 desc 'Default: run the specs.'
@@ -21,11 +21,10 @@ rescue LoadError => e
   exit
 end
 
-Spec::Rake::SpecTask.new do |t|
-  t.spec_opts = ['--options', 'spec/spec.opts']
+RSpec::Core::RakeTask.new do |t|
 end
 
-desc 'Generate documentation for the RocketAMF plugin.'
+desc 'Generate documentation'
 Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_dir = 'rdoc'
   rdoc.title    = spec.name
