@@ -317,14 +317,14 @@ static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj) {
  * Writes Numeric conforming object using AMF3 notation
  */
 static void ser3_write_numeric(AMF_SERIALIZER *ser, VALUE num) {
+    // Is it an integer in range?
     if(rb_funcall(num, id_is_integer, 0) == Qtrue) {
         // It's an integer internally, so now we need to check if it's in range
         VALUE int_obj = rb_Integer(num);
-        long long_val;
         if(TYPE(int_obj) == T_FIXNUM) {
-            long_val = FIX2LONG(int_obj);
+            long long_val = FIX2LONG(int_obj);
             if(long_val < MIN_INTEGER || long_val > MAX_INTEGER) {
-                // Outside range so convert to double and serialize as float
+                // Outside range, but we have a value already, so just cast to double
                 ser_write_byte(ser, AMF3_DOUBLE_MARKER);
                 ser_write_double(ser, (double)long_val);
             } else {
@@ -332,23 +332,13 @@ static void ser3_write_numeric(AMF_SERIALIZER *ser, VALUE num) {
                 ser_write_byte(ser, AMF3_INTEGER_MARKER);
                 ser_write_int(ser, (int)long_val);
             }
-        } else {
-            // rb_funcall the compare operators, because that's easier than exception handling for rb_big2long
-            if(rb_funcall(int_obj, rb_intern("<"), 1, LONG2FIX(MIN_INTEGER)) == Qtrue || rb_funcall(int_obj, rb_intern(">"), 1, LONG2FIX(MAX_INTEGER)) == Qtrue) {
-                // Outside range so convert to double and serialize as float
-                ser_write_byte(ser, AMF3_DOUBLE_MARKER);
-                ser_write_double(ser, rb_big2dbl(int_obj));
-            } else {
-                // Inside valid integer range
-                ser_write_byte(ser, AMF3_INTEGER_MARKER);
-                ser_write_int(ser, (int)rb_big2long(int_obj));
-            }
+            return;
         }
-    } else {
-        // It's a float, so just write it out as a double
-        ser_write_byte(ser, AMF3_DOUBLE_MARKER);
-        ser_write_double(ser, RFLOAT_VALUE(rb_Float(num)));
     }
+
+    // It's either not an integer or out of range, so write as a double
+    ser_write_byte(ser, AMF3_DOUBLE_MARKER);
+    ser_write_double(ser, RFLOAT_VALUE(rb_Float(num)));
 }
 
 /*
