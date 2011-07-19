@@ -2,6 +2,8 @@
 
 require "spec_helper.rb"
 require 'rexml/document'
+require 'bigdecimal'
+require 'rational'
 
 describe "when serializing" do
   before :each do
@@ -27,6 +29,11 @@ describe "when serializing" do
 
     it "should serialize numbers" do
       output = RocketAMF.serialize(3.5, 0)
+      output.should == object_fixture('amf0-number.bin')
+    end
+
+    it "should serialize Numeric conformers" do
+      output = RocketAMF.serialize(BigDecimal.new("3.5"), 0)
       output.should == object_fixture('amf0-number.bin')
     end
 
@@ -159,6 +166,13 @@ describe "when serializing" do
       it "should serialize BigNums" do
         expected = object_fixture("amf3-bigNum.bin")
         input = 2**1000
+        output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
+      it "should serialize float Numeric conformers" do
+        expected = object_fixture("amf3-float.bin")
+        input = Rational(7, 2) # 3.5
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end

@@ -21,6 +21,7 @@ ID id_get_as_class_name;
 ID id_props_for_serialization;
 ID id_utc;
 ID id_to_f;
+ID id_is_integer;
 
 static VALUE ser0_serialize(VALUE self, VALUE obj);
 static VALUE ser3_serialize(VALUE self, VALUE obj);
@@ -266,12 +267,9 @@ static VALUE ser0_serialize(VALUE self, VALUE obj) {
         rb_funcall(obj, id_encode_amf, 1, self);
     } else if(type == T_STRING || type == T_SYMBOL) {
         ser0_write_string(ser, obj, Qtrue);
-    } else if(type == T_FIXNUM) {
+    } else if(rb_obj_is_kind_of(obj, rb_cNumeric)) {
         ser_write_byte(ser, AMF0_NUMBER_MARKER);
-        ser_write_double(ser, (double)FIX2LONG(obj));
-    } else if(type == T_FLOAT) {
-        ser_write_byte(ser, AMF0_NUMBER_MARKER);
-        ser_write_double(ser, RFLOAT_VALUE(obj));
+        ser_write_double(ser, RFLOAT_VALUE(rb_Float(obj)));
     } else if(type == T_NIL) {
         ser_write_byte(ser, AMF0_NULL_MARKER);
     } else if(type == T_TRUE || type == T_FALSE) {
@@ -283,9 +281,6 @@ static VALUE ser0_serialize(VALUE self, VALUE obj) {
         ser0_write_time(self, obj);
     } else if(klass == cDate || klass == cDateTime) {
         ser0_write_date(self, obj);
-    } else if(type == T_BIGNUM) {
-        ser_write_byte(ser, AMF0_NUMBER_MARKER);
-        ser_write_double(ser, rb_big2dbl(obj));
     } else if(type == T_HASH || type == T_OBJECT) {
         ser0_write_object(self, obj, Qnil);
     }
@@ -315,6 +310,44 @@ static void ser3_write_utf8vr(AMF_SERIALIZER *ser, VALUE obj) {
 
         ser_write_int(ser, ((int)len) << 1 | 1);
         rb_str_buf_cat(ser->stream, str, len);
+    }
+}
+
+/*
+ * Writes Numeric conforming object using AMF3 notation
+ */
+static void ser3_write_numeric(AMF_SERIALIZER *ser, VALUE num) {
+    if(rb_funcall(num, id_is_integer, 0) == Qtrue) {
+        // It's an integer internally, so now we need to check if it's in range
+        VALUE int_obj = rb_Integer(num);
+        long long_val;
+        if(TYPE(int_obj) == T_FIXNUM) {
+            long_val = FIX2LONG(int_obj);
+            if(long_val < MIN_INTEGER || long_val > MAX_INTEGER) {
+                // Outside range so convert to double and serialize as float
+                ser_write_byte(ser, AMF3_DOUBLE_MARKER);
+                ser_write_double(ser, (double)long_val);
+            } else {
+                // Inside valid integer range
+                ser_write_byte(ser, AMF3_INTEGER_MARKER);
+                ser_write_int(ser, (int)long_val);
+            }
+        } else {
+            // rb_funcall the compare operators, because that's easier than exception handling for rb_big2long
+            if(rb_funcall(int_obj, rb_intern("<"), 1, LONG2FIX(MIN_INTEGER)) == Qtrue || rb_funcall(int_obj, rb_intern(">"), 1, LONG2FIX(MAX_INTEGER)) == Qtrue) {
+                // Outside range so convert to double and serialize as float
+                ser_write_byte(ser, AMF3_DOUBLE_MARKER);
+                ser_write_double(ser, rb_big2dbl(int_obj));
+            } else {
+                // Inside valid integer range
+                ser_write_byte(ser, AMF3_INTEGER_MARKER);
+                ser_write_int(ser, (int)rb_big2long(int_obj));
+            }
+        }
+    } else {
+        // It's a float, so just write it out as a double
+        ser_write_byte(ser, AMF3_DOUBLE_MARKER);
+        ser_write_double(ser, RFLOAT_VALUE(rb_Float(num)));
     }
 }
 
@@ -589,20 +622,8 @@ static VALUE ser3_serialize(VALUE self, VALUE obj) {
     } else if(type == T_STRING || type == T_SYMBOL) {
         ser_write_byte(ser, AMF3_STRING_MARKER);
         ser3_write_utf8vr(ser, obj);
-    } else if(type == T_FIXNUM) {
-        long tmp_num = FIX2LONG(obj);
-        if(tmp_num < MIN_INTEGER || tmp_num > MAX_INTEGER) {
-            // Outside range so convert to double and serialize as float
-            ser_write_byte(ser, AMF3_DOUBLE_MARKER);
-            ser_write_double(ser, (double)tmp_num);
-        } else {
-            // Inside valid integer range
-            ser_write_byte(ser, AMF3_INTEGER_MARKER);
-            ser_write_int(ser, (int)tmp_num);
-        }
-    } else if(type == T_FLOAT) {
-        ser_write_byte(ser, AMF3_DOUBLE_MARKER);
-        ser_write_double(ser, RFLOAT_VALUE(obj));
+    } else if(rb_obj_is_kind_of(obj, rb_cNumeric)) {
+        ser3_write_numeric(ser, obj);
     } else if(type == T_NIL) {
         ser_write_byte(ser, AMF3_NULL_MARKER);
     } else if(type == T_TRUE) {
@@ -619,9 +640,6 @@ static VALUE ser3_serialize(VALUE self, VALUE obj) {
         ser3_write_date(self, obj);
     } else if(klass == cStringIO) {
         ser3_write_byte_array(self, obj);
-    } else if(type == T_BIGNUM) {
-        ser_write_byte(ser, AMF3_DOUBLE_MARKER);
-        ser_write_double(ser, rb_big2dbl(obj));
     } else if(type == T_OBJECT) {
         ser3_write_object(self, obj, Qnil, Qnil);
     }
@@ -810,4 +828,5 @@ void Init_rocket_amf_serializer() {
     id_props_for_serialization = rb_intern("props_for_serialization");
     id_utc = rb_intern("utc");
     id_to_f = rb_intern("to_f");
+    id_is_integer = rb_intern("integer?");
 }

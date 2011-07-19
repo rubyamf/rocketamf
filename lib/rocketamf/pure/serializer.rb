@@ -88,7 +88,7 @@ module RocketAMF
           amf0_write_null
         elsif obj.is_a?(TrueClass) || obj.is_a?(FalseClass)
           amf0_write_boolean obj
-        elsif obj.is_a?(Float) || obj.is_a?(Integer)
+        elsif obj.is_a?(Numeric)
           amf0_write_number obj
         elsif obj.is_a?(Symbol) || obj.is_a?(String)
           amf0_write_string obj.to_s
@@ -198,10 +198,8 @@ module RocketAMF
           amf3_write_true
         elsif obj.is_a?(FalseClass)
           amf3_write_false
-        elsif obj.is_a?(Float)
-          amf3_write_float obj
-        elsif obj.is_a?(Integer)
-          amf3_write_integer obj
+        elsif obj.is_a?(Numeric)
+          amf3_write_numeric obj
         elsif obj.is_a?(Symbol) || obj.is_a?(String)
           amf3_write_string obj.to_s
         elsif obj.is_a?(Time)
@@ -234,18 +232,14 @@ module RocketAMF
         @stream << AMF3_FALSE_MARKER
       end
 
-      def amf3_write_integer int
-        if int < MIN_INTEGER || int > MAX_INTEGER # Check valid range for 29 bits
-          amf3_write_float int.to_f
+      def amf3_write_numeric num
+        if !num.integer? || num < MIN_INTEGER || num > MAX_INTEGER # Check valid range for 29 bits
+          @stream << AMF3_DOUBLE_MARKER
+          @stream << pack_double(num)
         else
           @stream << AMF3_INTEGER_MARKER
-          @stream << pack_integer(int)
+          @stream << pack_integer(num)
         end
-      end
-
-      def amf3_write_float float
-        @stream << AMF3_DOUBLE_MARKER
-        @stream << pack_double(float)
       end
 
       def amf3_write_string str
