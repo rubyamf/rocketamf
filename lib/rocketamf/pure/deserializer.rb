@@ -299,28 +299,17 @@ module RocketAMF
           return @object_cache[reference]
         else
           length = type >> 1
-          propertyName = amf3_read_string
-          if propertyName != ""
-            array = {}
-            @object_cache << array
-            begin
-              while(propertyName.length)
-                value = amf3_deserialize
-                array[propertyName] = value
-                propertyName = amf3_read_string
-              end
-            rescue Exception => e #end of object exception, because propertyName.length will be non existent
-            end
-            0.upto(length - 1) do |i|
-              array["" + i.to_s] = amf3_deserialize
-            end
-          else
-            array = []
-            @object_cache << array
-            0.upto(length - 1) do
-              array << amf3_deserialize
-            end
+          property_name = amf3_read_string
+          array = property_name.length > 0 ? {} : []
+          @object_cache << array
+
+          while property_name.length > 0
+            value = amf3_deserialize
+            array[property_name] = value
+            property_name = amf3_read_string
           end
+          0.upto(length - 1) {|i| array[i] = amf3_deserialize }
+
           array
         end
       end

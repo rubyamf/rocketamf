@@ -259,6 +259,12 @@ describe "when deserializing" do
         output.should == [1,2,3,4,5]
       end
 
+      it "should deserialize an associative array" do
+        input = object_fixture("amf3-associativeArray.bin")
+        output = RocketAMF.deserialize(input, 3)
+        output.should == {0=>"bar1", 1=>"bar2", 2=>"bar3", "asdf"=>"fdsa", "foo"=>"bar", "42"=>"bar"}
+      end
+
       it "should deserialize an array of mixed objects" do
         input = object_fixture("amf3-mixedArray.bin")
         output = RocketAMF.deserialize(input, 3)

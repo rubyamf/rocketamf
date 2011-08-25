@@ -451,7 +451,7 @@ static VALUE des3_read_array(VALUE self) {
                 key = des3_read_string(des);
             }
             for(i = 0; i < header; i++) {
-                rb_hash_aset(obj, rb_fix2str(INT2FIX(i), 10), des3_deserialize(self));
+                rb_hash_aset(obj, INT2FIX(i), des3_deserialize(self));
             }
         } else {
             // Limit size of pre-allocation to force remote user to actually send data,
