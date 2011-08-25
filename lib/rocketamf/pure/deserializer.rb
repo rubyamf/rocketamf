@@ -239,9 +239,9 @@ module RocketAMF
 
       def amf3_read_string
         type = amf3_read_integer
-        isReference = (type & 0x01) == 0
+        is_reference = (type & 0x01) == 0
 
-        if isReference
+        if is_reference
           reference = type >> 1
           return @string_cache[reference]
         else
@@ -258,9 +258,9 @@ module RocketAMF
 
       def amf3_read_xml
         type = amf3_read_integer
-        isReference = (type & 0x01) == 0
+        is_reference = (type & 0x01) == 0
 
-        if isReference
+        if is_reference
           reference = type >> 1
           return @object_cache[reference]
         else
@@ -277,9 +277,9 @@ module RocketAMF
 
       def amf3_read_byte_array
         type = amf3_read_integer
-        isReference = (type & 0x01) == 0
+        is_reference = (type & 0x01) == 0
 
-        if isReference
+        if is_reference
           reference = type >> 1
           return @object_cache[reference]
         else
@@ -292,9 +292,9 @@ module RocketAMF
 
       def amf3_read_array
         type = amf3_read_integer
-        isReference = (type & 0x01) == 0
+        is_reference = (type & 0x01) == 0
 
-        if isReference
+        if is_reference
           reference = type >> 1
           return @object_cache[reference]
         else
@@ -316,9 +316,9 @@ module RocketAMF
 
       def amf3_read_object
         type = amf3_read_integer
-        isReference = (type & 0x01) == 0
+        is_reference = (type & 0x01) == 0
 
-        if isReference
+        if is_reference
           reference = type >> 1
           return @object_cache[reference]
         else
@@ -382,8 +382,8 @@ module RocketAMF
 
       def amf3_read_date
         type = amf3_read_integer
-        isReference = (type & 0x01) == 0
-        if isReference
+        is_reference = (type & 0x01) == 0
+        if is_reference
           reference = type >> 1
           return @object_cache[reference]
         else
@@ -397,8 +397,8 @@ module RocketAMF
       def amf3_read_dict
         type = amf3_read_integer
         # Currently duplicate dictionaries send false, but I'll leave this in here just in case
-        isReference = (type & 0x01) == 0
-        if isReference
+        is_reference = (type & 0x01) == 0
+        if is_reference
           reference = type >> 1
           return @object_cache[reference]
         else
