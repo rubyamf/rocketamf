@@ -344,6 +344,7 @@ module RocketAMF
         @object_cache.add_obj obj
 
         # Calculate traits if not given
+        is_default = false
         if traits.nil?
           traits = {
                     :class_name => @class_mapper.get_as_class_name(obj),
@@ -351,11 +352,12 @@ module RocketAMF
                     :externalizable => false,
                     :dynamic => true
                    }
+          is_default = true unless traits[:class_name]
         end
-        class_name = traits[:class_name]
+        class_name = is_default ? "__default__" : traits[:class_name]
 
         # Write out traits
-        if class_name && @trait_cache[class_name] != nil
+        if (class_name && @trait_cache[class_name] != nil)
           @stream << pack_integer(@trait_cache[class_name] << 2 | 0x01)
         else
           @trait_cache.add_obj class_name if class_name
@@ -368,7 +370,11 @@ module RocketAMF
           @stream << pack_integer(header)
 
           # Write out class name
-          amf3_write_utf8_vr(class_name.to_s)
+          if class_name == "__default__"
+            amf3_write_utf8_vr("")
+          else
+            amf3_write_utf8_vr(class_name.to_s)
+          end
 
           # Write out members
           traits[:members].each {|m| amf3_write_utf8_vr(m)}

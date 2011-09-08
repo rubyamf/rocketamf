@@ -1,0 +1,3 @@
+#!/bin/bash
+amxmlc Encoder.as -debug
+adl encoder-app.xml

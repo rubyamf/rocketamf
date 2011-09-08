@@ -50,6 +50,7 @@ Rake::ExtensionTask.new('rocketamf_ext', spec) do |ext|
       gem_spec.post_install_message = "You installed the binary version of this gem!"
     end
   end
+  #ext.config_options << '--enable-sort-props'
 end
 
 desc "Build gem packages"

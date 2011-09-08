@@ -63,17 +63,20 @@ describe "when serializing" do
 
     it "should serialize Time objects" do
       output = RocketAMF.serialize(Time.utc(2003, 2, 13, 5), 0)
-      output.should == object_fixture('amf0-time.bin')
+      output.bytesize.should == 11
+      output[0,9].should == object_fixture('amf0-time.bin')[0,9] # Ignore TZ
     end
 
     it "should serialize Date objects" do
       output = RocketAMF.serialize(Date.civil(2020, 5, 30), 0)
-      output.should == object_fixture('amf0-date.bin')
+      output.bytesize.should == 11
+      output[0,9].should == object_fixture('amf0-date.bin')[0,9] # Ignore TZ
     end
 
     it "should serialize DateTime objects" do
       output = RocketAMF.serialize(DateTime.civil(2003, 2, 13, 5), 0)
-      output.should == object_fixture('amf0-time.bin')
+      output.bytesize.should == 11
+      output[0,9].should == object_fixture('amf0-time.bin')[0,9] # Ignore TZ
     end
 
     it "should serialize hashes as objects" do
@@ -92,7 +95,7 @@ describe "when serializing" do
     it "should serialize mapped objects" do
       obj = RubyClass.new
       obj.foo = "bar"
-      RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
+      RocketAMF::ClassMapper.define {|m| m.map :as => 'org.amf.ASClass', :ruby => 'RubyClass'}
 
       output = RocketAMF.serialize(obj, 0)
       output.should == object_fixture('amf0-typed-object.bin')
@@ -103,7 +106,7 @@ describe "when serializing" do
         shift_str = "\x53\x68\x69\x66\x74\x20\x83\x65\x83\x58\x83\x67".force_encoding("Shift_JIS") # "Shift テスト"
         utf_str = "\x55\x54\x46\x20\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88".force_encoding("UTF-8") # "UTF テスト"
         output = RocketAMF.serialize({"0" => 5, "1" => shift_str, "2" => utf_str, "3" => 5}, 0)
-        output.should == object_fixture("amf0-complexEncodedStringArray.bin")
+        output.should == object_fixture("amf0-complex-encoded-string-array.bin")
       end
     end
   end
@@ -145,12 +148,12 @@ describe "when serializing" do
       end
 
       it "should serialize large integers" do
-        expected = object_fixture("amf3-largeMax.bin")
+        expected = object_fixture("amf3-large-max.bin")
         input = RocketAMF::MAX_INTEGER + 1
         output = RocketAMF.serialize(input, 3)
         output.should == expected
 
-        expected = object_fixture("amf3-largeMin.bin")
+        expected = object_fixture("amf3-large-min.bin")
         input = RocketAMF::MIN_INTEGER - 1
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -228,7 +231,6 @@ describe "when serializing" do
 
           attr_accessor :nil_property
           attr_accessor :property_one
-          attr_accessor :property_two
           attr_writer :read_only_prop
 
           def method_with_arg arg='foo'
@@ -237,10 +239,9 @@ describe "when serializing" do
         end
         obj = NonMappedObject.new
         obj.property_one = 'foo'
-        obj.property_two = 1
         obj.nil_property = nil
 
-        expected = object_fixture("amf3-dynObject.bin")
+        expected = object_fixture("amf3-dynamic-object.bin")
         input = obj
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -273,14 +274,14 @@ describe "when serializing" do
       end
 
       it "should serialize an empty array" do
-        expected = object_fixture("amf3-emptyArray.bin")
+        expected = object_fixture("amf3-empty-array.bin")
         input = []
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
 
       it "should serialize an array of primatives" do
-        expected = object_fixture("amf3-primArray.bin")
+        expected = object_fixture("amf3-primitive-array.bin")
         input = [1, 2, 3, 4, 5]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -295,14 +296,14 @@ describe "when serializing" do
         so1 = SimpleObj.new
         so1.foo_three = 42
 
-        expected = object_fixture("amf3-mixedArray.bin")
-        input = [h1, h2, so1, SimpleObj.new, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
+        expected = object_fixture("amf3-mixed-array.bin")
+        input = [h1, h2, so1, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
 
       it "should serialize an array as an array collection" do
-        expected = object_fixture('amf3-arrayCollection.bin')
+        expected = object_fixture('amf3-array-collection.bin')
 
         # Test global
         RocketAMF::ClassMapper.use_array_collection = true
@@ -319,11 +320,22 @@ describe "when serializing" do
       end
 
       it "should serialize a complex set of array collections" do
-        expected = object_fixture('amf3-complexArrayCollection.bin')
+        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.amf.ASClass', :ruby => 'RubyClass'}
+        expected = object_fixture('amf3-complex-array-collection.bin')
 
         a = ["foo", "bar"]
         a.is_array_collection = true
-        b = ["bar", "foo"]
+        obj1 = RubyClass.new
+        obj1.foo = "bar"
+        def obj1.encode_amf serializer
+          serializer.write_object(self, nil, {:class_name => 'org.amf.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
+        end
+        obj2 = RubyClass.new
+        obj2.foo = "asdf"
+        def obj2.encode_amf serializer
+          serializer.write_object(self, nil, {:class_name => 'org.amf.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
+        end
+        b = [obj1, obj2]
         b.is_array_collection = true
         input = [a, b, b]
 
@@ -332,7 +344,7 @@ describe "when serializing" do
       end
 
       it "should serialize a byte array" do
-        expected = object_fixture("amf3-byteArray.bin")
+        expected = object_fixture("amf3-byte-array.bin")
         str = "\000\003これtest\100"
         str.force_encoding("ASCII-8BIT") if str.respond_to?(:force_encoding)
         input = StringIO.new(str)
@@ -351,21 +363,21 @@ describe "when serializing" do
         sc = StringCarrier.new
         sc.str = foo
 
-        expected = object_fixture("amf3-stringRef.bin")
+        expected = object_fixture("amf3-string-ref.bin")
         input = [foo, bar, foo, bar, foo, sc]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
 
       it "should not reference the empty string" do
-        expected = object_fixture("amf3-emptyStringRef.bin")
+        expected = object_fixture("amf3-empty-string-ref.bin")
         input = ""
         output = RocketAMF.serialize([input,input], 3)
         output.should == expected
       end
 
       it "should keep references of duplicate dates" do
-        expected = object_fixture("amf3-datesRef.bin")
+        expected = object_fixture("amf3-date-ref.bin")
         input = Time.utc 1970, 1, 1, 0
         output = RocketAMF.serialize([input,input], 3)
         output.should == expected
@@ -380,7 +392,7 @@ describe "when serializing" do
         obj2 = SimpleReferenceableObj.new
         obj2.foo = obj1.foo
 
-        expected = object_fixture("amf3-objRef.bin")
+        expected = object_fixture("amf3-object-ref.bin")
         input = [[obj1, obj2], "bar", [obj1, obj2]]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -390,16 +402,16 @@ describe "when serializing" do
         obj1 = RubyClass.new
         obj1.foo = "foo"
         def obj1.encode_amf serializer
-          serializer.write_object(self, nil, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
+          serializer.write_object(self, nil, {:class_name => 'org.amf.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
         end
         obj2 = RubyClass.new
         obj2.foo = "bar"
         def obj2.encode_amf serializer
-          serializer.write_object(self, nil, {:class_name => 'org.rocketAMF.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
+          serializer.write_object(self, nil, {:class_name => 'org.amf.ASClass', :dynamic => false, :externalizable => false, :members => ["baz", "foo"]})
         end
         input = [obj1, obj2]
 
-        expected = object_fixture("amf3-traitRef.bin")
+        expected = object_fixture("amf3-trait-ref.bin")
         output = RocketAMF.serialize(input, 3)
         output.should == expected
       end
@@ -408,7 +420,7 @@ describe "when serializing" do
         a = [1,2,3]
         b = %w{ a b c }
 
-        expected = object_fixture("amf3-arrayRef.bin")
+        expected = object_fixture("amf3-array-ref.bin")
         input = [a, b, a, b]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -420,7 +432,7 @@ describe "when serializing" do
         a.should == b
         a.object_id.should_not == b.object_id
 
-        expected = object_fixture("amf3-emptyArrayRef.bin")
+        expected = object_fixture("amf3-empty-array-ref.bin")
         input = [a,b,a,b]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -429,7 +441,7 @@ describe "when serializing" do
       it "should keep references of duplicate byte arrays" do
         b = StringIO.new "ASDF"
 
-        expected = object_fixture("amf3-byteArrayRef.bin")
+        expected = object_fixture("amf3-byte-array-ref.bin")
         input = [b, b]
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -455,7 +467,7 @@ describe "when serializing" do
         level_1_child_1 = parent.add_child GraphMember.new
         level_1_child_2 = parent.add_child GraphMember.new
 
-        expected = object_fixture("amf3-graphMember.bin")
+        expected = object_fixture("amf3-graph-member.bin")
         input = parent
         output = RocketAMF.serialize(input, 3)
         output.should == expected
@@ -468,7 +480,7 @@ describe "when serializing" do
           shift_str = "\x53\x68\x69\x66\x74\x20\x83\x65\x83\x58\x83\x67".force_encoding("Shift_JIS") # "Shift テスト"
           utf_str = "\x55\x54\x46\x20\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88".force_encoding("UTF-8") # "UTF テスト"
           output = RocketAMF.serialize([5, shift_str, utf_str, 5], 3)
-          output.should == object_fixture("amf3-complexEncodedStringArray.bin")
+          output.should == object_fixture("amf3-complex-encoded=string-array.bin")
         end
 
         it "should keep references of duplicate strings with different encodings" do
@@ -476,7 +488,7 @@ describe "when serializing" do
           shift_str = "\x74\x68\x69\x73\x20\x69\x73\x20\x61\x20\x83\x65\x83\x58\x83\x67".force_encoding("Shift_JIS")
           utf_str   = "\x74\x68\x69\x73\x20\x69\x73\x20\x61\x20\xe3\x83\x86\xe3\x82\xb9\xe3\x83\x88".force_encoding("UTF-8")
 
-          expected = object_fixture("amf3-encodedStringRef.bin")
+          expected = object_fixture("amf3-encoded-string-ref.bin")
           output = RocketAMF.serialize([shift_str, utf_str], 3)
           output.should == expected
         end

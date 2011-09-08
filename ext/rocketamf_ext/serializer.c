@@ -442,6 +442,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     }
 
     // Extract traits data, or use defaults
+    VALUE is_default = Qfalse;
     VALUE class_name = Qnil;
     VALUE members = Qnil;
     long members_len = 0;
@@ -449,6 +450,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     VALUE externalizable = Qfalse;
     if(traits == Qnil) {
         class_name = rb_funcall(ser->class_mapper, id_get_as_class_name, 1, obj);
+        if(class_name == Qnil) is_default = Qtrue;
     } else {
         class_name = rb_hash_aref(traits, sym_class_name);
         members = rb_hash_aref(traits, sym_members);
@@ -460,12 +462,13 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     // Handle trait caching
     int did_ref = 0;
     VALUE trait_index;
-    if(class_name != Qnil) {
-        if(st_lookup(ser->trait_cache, (st_data_t)RSTRING_PTR(class_name), &trait_index)) {
+    if(is_default == Qtrue || class_name != Qnil) {
+        const char *ref_class_name = is_default == Qtrue ? "__default__" : RSTRING_PTR(class_name);
+        if(st_lookup(ser->trait_cache, (st_data_t)ref_class_name, &trait_index)) {
             ser_write_int(ser, FIX2INT(trait_index) << 2 | 0x01);
             did_ref = 1;
         } else {
-            st_add_direct(ser->trait_cache, (st_data_t)strdup(RSTRING_PTR(class_name)), LONG2FIX(ser->trait_index));
+            st_add_direct(ser->trait_cache, (st_data_t)strdup(ref_class_name), LONG2FIX(ser->trait_index));
             ser->trait_index++;
         }
     }

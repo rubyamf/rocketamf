@@ -6,3 +6,4 @@ pkg/*
 *.so
 *.dll
 /tmp
+*.swf

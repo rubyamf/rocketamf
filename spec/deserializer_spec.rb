@@ -39,13 +39,6 @@ describe "when deserializing" do
       output.should == "this is a テスト"
     end
 
-    it "should deserialize anonymous objects" do
-      input = object_fixture('amf0-object.bin')
-      output = RocketAMF.deserialize(input, 0)
-      output.should == {:foo => 'baz', :bar => 3.14}
-      output.type.should == ""
-    end
-
     it "should deserialize nulls" do
       input = object_fixture('amf0-null.bin')
       output = RocketAMF.deserialize(input, 0)
@@ -56,13 +49,6 @@ describe "when deserializing" do
       input = object_fixture('amf0-undefined.bin')
       output = RocketAMF.deserialize(input, 0)
       output.should == nil
-    end
-
-    it "should deserialize references properly" do
-      input = object_fixture('amf0-ref-test.bin')
-      output = RocketAMF.deserialize(input, 0)
-      output.length.should == 2
-      output["0"].should === output["1"]
     end
 
     it "should deserialize hashes" do
@@ -91,21 +77,28 @@ describe "when deserializing" do
     end
 
     it "should deserialize an XML document" do
-      input = object_fixture('amf0-xmlDoc.bin')
+      input = object_fixture('amf0-xml-doc.bin')
       output = RocketAMF.deserialize(input, 0)
       output.should == '<parent><child prop="test" /></parent>'
+    end
+
+    it "should deserialize anonymous objects" do
+      input = object_fixture('amf0-object.bin')
+      output = RocketAMF.deserialize(input, 0)
+      output.should == {:foo => 'baz', :bar => 3.14}
+      output.type.should == ""
     end
 
     it "should deserialize an unmapped object as a dynamic anonymous object" do
       input = object_fixture("amf0-typed-object.bin")
       output = RocketAMF.deserialize(input, 0)
 
-      output.type.should == 'org.rocketAMF.ASClass'
+      output.type.should == 'org.amf.ASClass'
       output.should == {:foo => 'bar', :baz => nil}
     end
 
     it "should deserialize a mapped object as a mapped ruby class instance" do
-      RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
+      RocketAMF::ClassMapper.define {|m| m.map :as => 'org.amf.ASClass', :ruby => 'RubyClass'}
 
       input = object_fixture("amf0-typed-object.bin")
       output = RocketAMF.deserialize(input, 0)
@@ -113,6 +106,13 @@ describe "when deserializing" do
       output.should be_a(RubyClass)
       output.foo.should == 'bar'
       output.baz.should == nil
+    end
+
+    it "should deserialize references properly" do
+      input = object_fixture('amf0-ref-test.bin')
+      output = RocketAMF.deserialize(input, 0)
+      output.length.should == 2
+      output["0"].should === output["1"]
     end
   end
 
@@ -158,17 +158,17 @@ describe "when deserializing" do
       end
 
       it "should deserialize large integers" do
-        input = object_fixture("amf3-largeMax.bin")
+        input = object_fixture("amf3-large-max.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == RocketAMF::MAX_INTEGER + 1
 
-        input = object_fixture("amf3-largeMin.bin")
+        input = object_fixture("amf3-large-min.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == RocketAMF::MIN_INTEGER - 1
       end
 
       it "should deserialize BigNums" do
-        input = object_fixture("amf3-bigNum.bin")
+        input = object_fixture("amf3-bignum.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == 2**1000
       end
@@ -193,7 +193,7 @@ describe "when deserializing" do
 
       it "should deserialize XML" do
         # XMLDocument tag
-        input = object_fixture("amf3-xmlDoc.bin")
+        input = object_fixture("amf3-xml-doc.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == '<parent><child prop="test" /></parent>'
 
@@ -206,12 +206,11 @@ describe "when deserializing" do
 
     describe "objects" do
       it "should deserialize an unmapped object as a dynamic anonymous object" do
-        input = object_fixture("amf3-dynObject.bin")
+        input = object_fixture("amf3-dynamic-object.bin")
         output = RocketAMF.deserialize(input, 3)
 
         expected = {
           :property_one => 'foo',
-          :property_two => 1,
           :nil_property => nil,
           :another_public_property => 'a_public_value'
         }
@@ -220,9 +219,9 @@ describe "when deserializing" do
       end
 
       it "should deserialize a mapped object as a mapped ruby class instance" do
-        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
+        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.amf.ASClass', :ruby => 'RubyClass'}
 
-        input = object_fixture("amf3-typedObject.bin")
+        input = object_fixture("amf3-typed-object.bin")
         output = RocketAMF.deserialize(input, 3)
 
         output.should be_a(RubyClass)
@@ -248,35 +247,35 @@ describe "when deserializing" do
       end
 
       it "should deserialize an empty array" do
-        input = object_fixture("amf3-emptyArray.bin")
+        input = object_fixture("amf3-empty-array.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == []
       end
 
       it "should deserialize an array of primitives" do
-        input = object_fixture("amf3-primArray.bin")
+        input = object_fixture("amf3-primitive-array.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == [1,2,3,4,5]
       end
 
       it "should deserialize an associative array" do
-        input = object_fixture("amf3-associativeArray.bin")
+        input = object_fixture("amf3-associative-array.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == {0=>"bar1", 1=>"bar2", 2=>"bar3", "asdf"=>"fdsa", "foo"=>"bar", "42"=>"bar"}
       end
 
       it "should deserialize an array of mixed objects" do
-        input = object_fixture("amf3-mixedArray.bin")
+        input = object_fixture("amf3-mixed-array.bin")
         output = RocketAMF.deserialize(input, 3)
 
         h1 = {:foo_one => "bar_one"}
         h2 = {:foo_two => ""}
         so1 = {:foo_three => 42}
-        output.should == [h1, h2, so1, {:foo_three => nil}, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
+        output.should == [h1, h2, so1, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
       end
 
       it "should deserialize an array collection as an array" do
-        input = object_fixture("amf3-arrayCollection.bin")
+        input = object_fixture("amf3-array-collection.bin")
         output = RocketAMF.deserialize(input, 3)
 
         output.class.should == Array
@@ -284,16 +283,19 @@ describe "when deserializing" do
       end
 
       it "should deserialize a complex set of array collections" do
-        input = object_fixture('amf3-complexArrayCollection.bin')
+        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.amf.ASClass', :ruby => 'RubyClass'}
+        input = object_fixture('amf3-complex-array-collection.bin')
+
         output = RocketAMF.deserialize(input, 3)
 
         output[0].should == ["foo", "bar"]
-        output[1].should == ["bar", "foo"]
+        output[1][0].should be_a(RubyClass)
+        output[1][1].should be_a(RubyClass)
         output[2].should === output[1]
       end
 
       it "should deserialize a byte array" do
-        input = object_fixture("amf3-byteArray.bin")
+        input = object_fixture("amf3-byte-array.bin")
         output = RocketAMF.deserialize(input, 3)
 
         output.should be_a(StringIO)
@@ -303,7 +305,7 @@ describe "when deserializing" do
       end
 
       it "should deserialize an empty dictionary" do
-        input = object_fixture("amf3-emptyDictionary.bin")
+        input = object_fixture("amf3-empty-dictionary.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == {}
       end
@@ -315,7 +317,7 @@ describe "when deserializing" do
         keys = output.keys
         keys.length.should == 2
         obj_key, str_key = keys[0].is_a?(RocketAMF::Values::TypedHash) ? [keys[0], keys[1]] : [keys[1], keys[0]]
-        obj_key.type.should == 'org.rocketAMF.ASClass'
+        obj_key.type.should == 'org.amf.ASClass'
         output[obj_key].should == "asdf2"
         str_key.should == "bar"
         output[str_key].should == "asdf1"
@@ -324,34 +326,32 @@ describe "when deserializing" do
 
     describe "and implementing the AMF Spec" do
       it "should keep references of duplicate strings" do
-        input = object_fixture("amf3-stringRef.bin")
+        input = object_fixture("amf3-string-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
-        class StringCarrier; attr_accessor :str; end
         foo = "foo"
         bar = "str"
-        sc = StringCarrier.new
-        sc = {:str => foo}
-        output.should == [foo, bar, foo, bar, foo, sc]
+        output.should == [foo, bar, foo, bar, foo, {:str => "foo"}]
       end
 
       it "should not reference the empty string" do
-        input = object_fixture("amf3-emptyStringRef.bin")
+        input = object_fixture("amf3-empty-string-ref.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == ["",""]
       end
 
       it "should keep references of duplicate dates" do
-        input = object_fixture("amf3-datesRef.bin")
+        input = object_fixture("amf3-date-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
+        output[0].should == Time.at(0)
         output[0].should equal(output[1])
         # Expected object:
         # [DateTime.parse "1/1/1970", DateTime.parse "1/1/1970"]
       end
 
       it "should keep reference of duplicate objects" do
-        input = object_fixture("amf3-objRef.bin")
+        input = object_fixture("amf3-object-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
         obj1 = {:foo => "bar"}
@@ -360,9 +360,9 @@ describe "when deserializing" do
       end
 
       it "should keep reference of duplicate object traits" do
-        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.rocketAMF.ASClass', :ruby => 'RubyClass'}
+        RocketAMF::ClassMapper.define {|m| m.map :as => 'org.amf.ASClass', :ruby => 'RubyClass'}
 
-        input = object_fixture("amf3-traitRef.bin")
+        input = object_fixture("amf3-trait-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
         output[0].foo.should == "foo"
@@ -370,7 +370,7 @@ describe "when deserializing" do
       end
 
       it "should keep references of duplicate arrays" do
-        input = object_fixture("amf3-arrayRef.bin")
+        input = object_fixture("amf3-array-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
         a = [1,2,3]
@@ -379,7 +379,7 @@ describe "when deserializing" do
       end
 
       it "should not keep references of duplicate empty arrays unless the object_id matches" do
-        input = object_fixture("amf3-emptyArrayRef.bin")
+        input = object_fixture("amf3-empty-array-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
         a = []
@@ -388,20 +388,20 @@ describe "when deserializing" do
       end
 
       it "should keep references of duplicate XML and XMLDocuments" do
-        input = object_fixture("amf3-xmlRef.bin")
+        input = object_fixture("amf3-xml-ref.bin")
         output = RocketAMF.deserialize(input, 3)
         output.should == ['<parent><child prop="test"/></parent>', '<parent><child prop="test"/></parent>']
       end
 
       it "should keep references of duplicate byte arrays" do
-        input = object_fixture("amf3-byteArrayRef.bin")
+        input = object_fixture("amf3-byte-array-ref.bin")
         output = RocketAMF.deserialize(input, 3)
         output[0].object_id.should == output[1].object_id
         output[0].string.should == "ASDF"
       end
 
       it "should deserialize a deep object graph with circular references" do
-        input = object_fixture("amf3-graphMember.bin")
+        input = object_fixture("amf3-graph-member.bin")
         output = RocketAMF.deserialize(input, 3)
 
         output[:children][0][:parent].should === output
