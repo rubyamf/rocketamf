@@ -39,9 +39,17 @@ static void mapset_mark(MAPSET *set) {
 /*
  * Free the mapping tables and struct
  */
+int mapset_free_strtable_key(st_data_t key, st_data_t value, st_data_t ignored) {
+    xfree((void *)key);
+    return ST_DELETE;
+}
 static void mapset_free(MAPSET *set) {
+    st_foreach(set->as_mappings, mapset_free_strtable_key, 0);
     st_free_table(set->as_mappings);
+    set->as_mappings = NULL;
+    st_foreach(set->rb_mappings, mapset_free_strtable_key, 0);
     st_free_table(set->rb_mappings);
+    set->rb_mappings = NULL;
     xfree(set);
 }
 
