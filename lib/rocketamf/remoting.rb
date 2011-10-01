@@ -44,7 +44,7 @@ module RocketAMF
     #
     # Example:
     #
-    #    req = RocketAMF::Envelope.new
+    #    req = RocketAMF::Envelope.new :amf_version => 3
     #    req.call_flex 'Controller.action', "arg_1", ["args", "args"]
     def call_flex target, *args
       raise "Can only call one flex target per request" if @call_type == :flex
