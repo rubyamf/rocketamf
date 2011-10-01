@@ -652,10 +652,30 @@ static void ser_mark(AMF_SERIALIZER *ser) {
 /*
  * Free cache tables, stream and the struct itself
  */
+int ser_free_strtable_key(st_data_t key, st_data_t value, st_data_t ignored)
+{
+    xfree((void *)key);
+
+    return ST_DELETE;
+}
+inline void ser_free_cache(AMF_SERIALIZER *ser) {
+    if(ser->str_cache) {
+        st_foreach(ser->str_cache, ser_free_strtable_key, 0);
+        st_free_table(ser->str_cache);
+        ser->str_cache = NULL;
+    }
+    if(ser->trait_cache) {
+        st_foreach(ser->trait_cache, ser_free_strtable_key, 0);
+        st_free_table(ser->trait_cache);
+        ser->trait_cache = NULL;
+    }
+    if(ser->obj_cache) {
+        st_free_table(ser->obj_cache);
+        ser->obj_cache = NULL;
+    }
+}
 static void ser_free(AMF_SERIALIZER *ser) {
-    if(ser->str_cache) st_free_table(ser->str_cache);
-    if(ser->trait_cache) st_free_table(ser->trait_cache);
-    if(ser->obj_cache) st_free_table(ser->obj_cache);
+    ser_free_cache(ser);
     xfree(ser);
 }
 
@@ -745,14 +765,7 @@ VALUE ser_serialize(VALUE self, VALUE ver, VALUE obj) {
 
     // Clean up
     ser->depth--;
-    if(ser->depth == 0) {
-        xfree(ser->obj_cache);
-        ser->obj_cache = NULL;
-        xfree(ser->str_cache);
-        ser->str_cache = NULL;
-        xfree(ser->trait_cache);
-        ser->trait_cache = NULL;
-    }
+    if(ser->depth == 0) ser_free_cache(ser);
 
     return ser->stream;
 }
