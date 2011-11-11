@@ -229,8 +229,8 @@ static VALUE ser0_write_time(VALUE self, VALUE time) {
     // Write time
     time = rb_obj_dup(time);
     rb_funcall(time, id_utc, 0);
-    long tmp_num = NUM2DBL(rb_funcall(time, id_to_f, 0)) * 1000;
-    ser_write_double(ser, (double)tmp_num);
+    double tmp_num = NUM2DBL(rb_funcall(time, id_to_f, 0)) * 1000;
+    ser_write_double(ser, tmp_num);
     ser_write_uint16(ser, 0); // Time zone
 }
 
@@ -549,8 +549,8 @@ static VALUE ser3_write_time(VALUE self, VALUE time_obj) {
     ser_write_byte(ser, AMF3_NULL_MARKER); // Ref header
     time_obj = rb_obj_dup(time_obj);
     rb_funcall(time_obj, id_utc, 0);
-    long tmp_num = NUM2DBL(rb_funcall(time_obj, id_to_f, 0)) * 1000;
-    ser_write_double(ser, (double)tmp_num);
+    double tmp_num = NUM2DBL(rb_funcall(time_obj, id_to_f, 0)) * 1000;
+    ser_write_double(ser, tmp_num);
 }
 
 static VALUE ser3_write_date(VALUE self, VALUE date) {
