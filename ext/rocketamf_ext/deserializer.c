@@ -238,7 +238,7 @@ static VALUE des0_read_array(VALUE self) {
     VALUE ary = rb_ary_new2(len < MAX_ARRAY_PREALLOC ? len : MAX_ARRAY_PREALLOC);
     rb_ary_push(des->obj_cache, ary);
 
-    long i;
+    unsigned long i;
     for(i = 0; i < len; i++) {
         rb_ary_push(ary, des0_deserialize(self, des_read_byte(des)));
     }

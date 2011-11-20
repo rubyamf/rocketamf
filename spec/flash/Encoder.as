@@ -66,6 +66,13 @@ package {
 					ret['1'] = o;
 					return ret;
 				},
+				'amf0-complex-encoded-string': function():Object {
+					var o:Object = {};
+					o['shift'] = "Shift テスト";
+					o['utf'] = "UTF テスト";
+					o['zed'] = 5;
+					return o;
+				},
 				'amf3-null': null,
 				'amf3-false': false,
 				'amf3-true': true,
@@ -187,7 +194,7 @@ package {
 					parentObj['parent'] = null;
 					return parentObj;
 				},
-				'amf3-complex-encoded=string-array': [5, "Shift テスト", "UTF テスト", 5],
+				'amf3-complex-encoded-string-array': [5, "Shift テスト", "UTF テスト", 5],
 				'amf3-encoded-string-ref': ["this is a テスト", "this is a テスト"]
 			};
 

@@ -87,7 +87,7 @@ static VALUE mapset_init(VALUE self) {
  */
 static VALUE mapset_map_defaults(VALUE self) {
     const int NUM_MAPPINGS = 9;
-    char* ruby_classes[] = {
+    const char* ruby_classes[] = {
         "RocketAMF::Values::AbstractMessage",
         "RocketAMF::Values::RemotingMessage",
         "RocketAMF::Values::AsyncMessage",
@@ -98,7 +98,7 @@ static VALUE mapset_map_defaults(VALUE self) {
         "RocketAMF::Values::AcknowledgeMessageExt",
         "RocketAMF::Values::ErrorMessage"
     };
-    char* as_classes[] = {
+    const char* as_classes[] = {
         "flex.messaging.messages.AbstractMessage",
         "flex.messaging.messages.RemotingMessage",
         "flex.messaging.messages.AsyncMessage",

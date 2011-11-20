@@ -8,8 +8,8 @@ typedef struct {
     VALUE class_mapper;
     VALUE src;
     char* stream;
-    long pos;
-    long size;
+    unsigned long pos;
+    unsigned long size;
     VALUE obj_cache;
     VALUE str_cache;
     VALUE trait_cache;

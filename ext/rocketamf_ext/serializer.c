@@ -593,7 +593,8 @@ static VALUE ser3_write_byte_array(VALUE self, VALUE ba) {
 
     // Write byte array
     VALUE str = rb_funcall(ba, rb_intern("string"), 0);
-    ser_write_int(ser, RSTRING_LEN(str) << 1 | 1);
+    int len = (int)(RSTRING_LEN(str) << 1); // Explicitly cast to int to avoid compiler warning
+    ser_write_int(ser, len | 1);
     rb_str_buf_cat(ser->stream, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
