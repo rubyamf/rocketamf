@@ -13,4 +13,6 @@ if enable_config("sort-props", false)
 end
 have_func('rb_str_encode')
 
+$CFLAGS += " -Wall"
+
 create_makefile('rocketamf_ext')

@@ -116,7 +116,7 @@ void ser_get_string(VALUE obj, VALUE encode, char** str, long* len) {
 /*
  * Write the given array in AMF0 notation
  */
-static VALUE ser0_write_array(VALUE self, VALUE ary) {
+static void ser0_write_array(VALUE self, VALUE ary) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -131,8 +131,6 @@ static VALUE ser0_write_array(VALUE self, VALUE ary) {
     for(i = 0; i < len; i++) {
         ser0_serialize(self, RARRAY_PTR(ary)[i]);
     }
-
-    return self;
 }
 
 /*
@@ -178,7 +176,7 @@ static int ser0_hash_iter(VALUE key, VALUE val, const VALUE args[1]) {
  * sorting must be enabled by an explicit call to extconf.rb, so the tests will
  * not pass typically on Ruby 1.8.
  */
-static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
+static void ser0_write_object(VALUE self, VALUE obj, VALUE props) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -216,11 +214,9 @@ static VALUE ser0_write_object(VALUE self, VALUE obj, VALUE props) {
 
     ser_write_uint16(ser, 0);
     ser_write_byte(ser, AMF0_OBJECT_END_MARKER);
-
-    return self;
 }
 
-static VALUE ser0_write_time(VALUE self, VALUE time) {
+static void ser0_write_time(VALUE self, VALUE time) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -234,7 +230,7 @@ static VALUE ser0_write_time(VALUE self, VALUE time) {
     ser_write_uint16(ser, 0); // Time zone
 }
 
-static VALUE ser0_write_date(VALUE self, VALUE date) {
+static void ser0_write_date(VALUE self, VALUE date) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -344,7 +340,7 @@ static void ser3_write_numeric(AMF_SERIALIZER *ser, VALUE num) {
 /*
  * Writes the given array using AMF3 notation
  */
-static VALUE ser3_write_array(VALUE self, VALUE ary) {
+static void ser3_write_array(VALUE self, VALUE ary) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -363,7 +359,7 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
     VALUE obj_index;
     if(st_lookup(ser->obj_cache, ary, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
-        return self;
+        return;
     } else {
         st_add_direct(ser->obj_cache, ary, LONG2FIX(ser->obj_index));
         ser->obj_index++;
@@ -395,8 +391,6 @@ static VALUE ser3_write_array(VALUE self, VALUE ary) {
     for(i = 0; i < len; i++) {
         ser3_serialize(self, RARRAY_PTR(ary)[i]);
     }
-
-    return self;
 }
 
 /*
@@ -423,7 +417,7 @@ static int ser3_hash_iter(VALUE key, VALUE val, const VALUE args[2]) {
  * also pass that in, or pass Qnil to use the default traits - dynamic with no
  * defined members.
  */
-static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits) {
+static void ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
     long i;
@@ -435,7 +429,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     VALUE obj_index;
     if(st_lookup(ser->obj_cache, obj, &obj_index)) {
         ser_write_int(ser, FIX2INT(obj_index) << 1);
-        return self;
+        return;
     } else {
         st_add_direct(ser->obj_cache, obj, LONG2FIX(ser->obj_index));
         ser->obj_index++;
@@ -494,7 +488,7 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
     // Raise exception if marked externalizable
     if(externalizable == Qtrue) {
         rb_funcall(obj, rb_intern("write_external"), 1, self);
-        return self;
+        return;
     }
 
     // Make a request for props hash unless we already have it
@@ -525,11 +519,9 @@ static VALUE ser3_write_object(VALUE self, VALUE obj, VALUE props, VALUE traits)
 
         ser_write_byte(ser, AMF3_CLOSE_DYNAMIC_OBJECT);
     }
-
-    return self;
 }
 
-static VALUE ser3_write_time(VALUE self, VALUE time_obj) {
+static void ser3_write_time(VALUE self, VALUE time_obj) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -553,7 +545,7 @@ static VALUE ser3_write_time(VALUE self, VALUE time_obj) {
     ser_write_double(ser, tmp_num);
 }
 
-static VALUE ser3_write_date(VALUE self, VALUE date) {
+static void ser3_write_date(VALUE self, VALUE date) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -575,7 +567,7 @@ static VALUE ser3_write_date(VALUE self, VALUE date) {
     ser_write_double(ser, tmp_num);
 }
 
-static VALUE ser3_write_byte_array(VALUE self, VALUE ba) {
+static void ser3_write_byte_array(VALUE self, VALUE ba) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
 
@@ -781,10 +773,11 @@ static VALUE ser_write_array(VALUE self, VALUE ary) {
     AMF_SERIALIZER *ser;
     Data_Get_Struct(self, AMF_SERIALIZER, ser);
     if(ser->version == 0) {
-        return ser0_write_array(self, ary);
+        ser0_write_array(self, ary);
     } else {
-        return ser3_write_array(self, ary);
+        ser3_write_array(self, ary);
     }
+    return self;
 }
 
 /*
@@ -808,11 +801,13 @@ static VALUE ser_write_object(int argc, VALUE *argv, VALUE self) {
     VALUE traits = Qnil;
     if(ser->version == 0) {
         rb_scan_args(argc, argv, "11", &obj, &props);
-        return ser0_write_object(self, obj, props);
+        ser0_write_object(self, obj, props);
     } else {
         rb_scan_args(argc, argv, "12", &obj, &props, &traits);
-        return ser3_write_object(self, obj, props, traits);
+        ser3_write_object(self, obj, props, traits);
     }
+
+    return self;
 }
 
 void Init_rocket_amf_serializer() {

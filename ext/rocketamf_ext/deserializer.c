@@ -25,14 +25,14 @@ char des_read_byte(AMF_DESERIALIZER *des) {
 
 int des_read_uint16(AMF_DESERIALIZER *des) {
     DES_BOUNDS_CHECK(des, 2);
-    const unsigned char *str = des->stream + des->pos;
+    const unsigned char *str = (unsigned char*)(des->stream) + des->pos;
     des->pos += 2;
     return ((str[0] << 8) | str[1]);
 }
 
 unsigned long des_read_uint32(AMF_DESERIALIZER *des) {
     DES_BOUNDS_CHECK(des, 4);
-    const unsigned char *str = des->stream + des->pos;
+    const unsigned char *str = (unsigned char*)(des->stream) + des->pos;
     des->pos += 4;
     return ((str[0] << 24) | (str[1] << 16) | (str[2] << 8) | str[3]);
 }
@@ -70,7 +70,7 @@ double des_read_double(AMF_DESERIALIZER *des) {
 int des_read_int(AMF_DESERIALIZER *des) {
     int result = 0, byte_cnt = 0;
     DES_BOUNDS_CHECK(des, 1);
-    char byte =  des->stream[des->pos++];
+    unsigned char byte = des->stream[des->pos++];
 
     while(byte & 0x80 && byte_cnt < 3) {
         result <<= 7;

@@ -324,7 +324,7 @@ static VALUE mapping_get_ruby_obj(VALUE self, VALUE name) {
         VALUE base_const = rb_mKernel;
         char* endptr;
         char* ptr = RSTRING_PTR(ruby_class_name);
-        while(endptr = strstr(ptr,"::")) {
+        while((endptr = strstr(ptr,"::"))) {
             endptr[0] = '\0'; // NULL terminate to make string ops work
             base_const = rb_const_get(base_const, rb_intern(ptr));
             endptr[0] = ':'; // Restore correct char
