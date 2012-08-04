@@ -50,6 +50,8 @@ module RocketAMF
 
         # Read fields and any remaining unmapped fields in a byte-set
         fields.each_with_index do |list, i|
+          break if flags[i].nil?
+
           list.each_with_index do |name, j|
             if flags[i] & 2**j != 0
               send("#{name}=", des.read_object)
