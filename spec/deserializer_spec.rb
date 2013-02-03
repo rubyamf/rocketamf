@@ -322,6 +322,32 @@ describe "when deserializing" do
         str_key.should == "bar"
         output[str_key].should == "asdf1"
       end
+
+      it "should deserialize Vector.<int>" do
+        input = object_fixture('amf3-vector-int.bin')
+        output = RocketAMF.deserialize(input, 3)
+        output.should == [4, -20, 12]
+      end
+
+      it "should deserialize Vector.<uint>" do
+        input = object_fixture('amf3-vector-uint.bin')
+        output = RocketAMF.deserialize(input, 3)
+        output.should == [4, 20, 12]
+      end
+
+      it "should deserialize Vector.<Number>" do
+        input = object_fixture('amf3-vector-double.bin')
+        output = RocketAMF.deserialize(input, 3)
+        output.should == [4.3, -20.6]
+      end
+
+      it "should deserialize Vector.<Object>" do
+        input = object_fixture('amf3-vector-object.bin')
+        output = RocketAMF.deserialize(input, 3)
+        output[0][:foo].should == 'foo'
+        output[1].type.should == 'org.amf.ASClass'
+        output[2][:foo].should == 'baz'
+      end
     end
 
     describe "and implementing the AMF Spec" do

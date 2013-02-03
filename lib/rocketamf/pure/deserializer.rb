@@ -197,6 +197,8 @@ module RocketAMF
           amf3_read_object
         when AMF3_BYTE_ARRAY_MARKER
           amf3_read_byte_array
+        when AMF3_VECTOR_INT_MARKER, AMF3_VECTOR_UINT_MARKER, AMF3_VECTOR_DOUBLE_MARKER, AMF3_VECTOR_OBJECT_MARKER
+          amf3_read_vector type
         when AMF3_DICT_MARKER
           amf3_read_dict
         else
@@ -409,6 +411,44 @@ module RocketAMF
             dict[amf3_deserialize] = amf3_deserialize
           end
           dict
+        end
+      end
+
+      def amf3_read_vector vector_type
+        type = amf3_read_integer
+        is_reference = (type & 0x01) == 0
+        if is_reference
+          reference = type >> 1
+          return @object_cache[reference]
+        else
+          vec = []
+          @object_cache << vec
+          length = type >> 1
+          fixed_vector = read_int8 @source # Ignore
+          case vector_type
+          when AMF3_VECTOR_INT_MARKER
+            0.upto(length - 1) do |i|
+              int = read_word32_network(@source)
+              int = int - 2**32 if int > MAX_INTEGER
+              vec << int
+            end
+          when AMF3_VECTOR_UINT_MARKER
+            0.upto(length - 1) do |i|
+              vec << read_word32_network(@source)
+              puts vec[i].to_s(2)
+            end
+          when AMF3_VECTOR_DOUBLE_MARKER
+            0.upto(length - 1) do |i|
+              vec << amf3_read_number
+            end
+          when AMF3_VECTOR_OBJECT_MARKER
+            vector_class = amf3_read_string # Ignore
+            puts vector_class
+            0.upto(length - 1) do |i|
+              vec << amf3_deserialize
+            end
+          end
+          vec
         end
       end
     end

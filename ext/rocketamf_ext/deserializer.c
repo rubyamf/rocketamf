@@ -30,7 +30,7 @@ int des_read_uint16(AMF_DESERIALIZER *des) {
     return ((str[0] << 8) | str[1]);
 }
 
-unsigned long des_read_uint32(AMF_DESERIALIZER *des) {
+unsigned int des_read_uint32(AMF_DESERIALIZER *des) {
     DES_BOUNDS_CHECK(des, 4);
     const unsigned char *str = (unsigned char*)(des->stream) + des->pos;
     des->pos += 4;
@@ -98,7 +98,7 @@ int des_read_int(AMF_DESERIALIZER *des) {
 /*
  * Read a string and then force the encoding to UTF 8 if running ruby 1.9
  */
-VALUE des_read_string(AMF_DESERIALIZER *des, unsigned long len) {
+VALUE des_read_string(AMF_DESERIALIZER *des, unsigned int len) {
     DES_BOUNDS_CHECK(des, len);
     VALUE str = rb_str_new(des->stream + des->pos, len);
 #ifdef HAVE_RB_STR_ENCODE
@@ -115,7 +115,7 @@ VALUE des_read_string(AMF_DESERIALIZER *des, unsigned long len) {
  * C strings, this function does the lookup without requiring any additional
  * allocations.
  */
-VALUE des_read_sym(AMF_DESERIALIZER *des, unsigned long len) {
+VALUE des_read_sym(AMF_DESERIALIZER *des, unsigned int len) {
     DES_BOUNDS_CHECK(des, len);
     char end = des->stream[des->pos+len];
     des->stream[des->pos+len] = '\0';
@@ -167,7 +167,7 @@ static VALUE des0_read_amf3(VALUE self) {
  * Reads an AMF0 hash, with a configurable key reading function - either
  * des_read_string or des_read_sym
  */
-static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, unsigned long)) {
+static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, unsigned int)) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
 
@@ -234,11 +234,11 @@ static VALUE des0_read_array(VALUE self) {
     // Limit size of pre-allocation to force remote user to actually send data,
     // rather than just sending a size of 2**32-1 and nothing afterwards to
     // crash the server
-    unsigned long len = des_read_uint32(des);
+    unsigned int len = des_read_uint32(des);
     VALUE ary = rb_ary_new2(len < MAX_ARRAY_PREALLOC ? len : MAX_ARRAY_PREALLOC);
     rb_ary_push(des->obj_cache, ary);
 
-    unsigned long i;
+    unsigned int i;
     for(i = 0; i < len; i++) {
         rb_ary_push(ary, des0_deserialize(self, des_read_byte(des)));
     }
@@ -538,6 +538,56 @@ static VALUE des3_read_dict(VALUE self) {
     }
 }
 
+static VALUE des3_read_vec(VALUE self, char type) {
+    AMF_DESERIALIZER *des;
+    Data_Get_Struct(self, AMF_DESERIALIZER, des);
+
+    int header = des_read_int(des);
+    if((header & 1) == 0) {
+        header >>= 1;
+        if(header >= RARRAY_LEN(des->obj_cache)) rb_raise(rb_eRangeError, "obj reference index beyond end");
+        return RARRAY_PTR(des->obj_cache)[header];
+    } else {
+        header >>= 1;
+
+        // Limit size of pre-allocation to force remote user to actually send data,
+        // rather than just sending a size of 2**32-1 and nothing afterwards to
+        // crash the server
+        VALUE vec = rb_ary_new2(header < MAX_ARRAY_PREALLOC ? header : MAX_ARRAY_PREALLOC);
+        rb_ary_push(des->obj_cache, vec);
+
+        des_read_byte(des); // Fixed Length: Not supported in ruby
+
+        // On 32-bit ARCH, FIXNUM has a limit of 2**31-1, resulting in truncation of large ints/uints
+        int i;
+        switch(type) {
+            case AMF3_VECTOR_INT_MARKER:
+                for(i = 0; i < header; i++) {
+                    int ival = des_read_uint32(des);
+                    rb_ary_push(vec, INT2FIX(ival));
+                }
+                break;
+            case AMF3_VECTOR_UINT_MARKER:
+                for(i = 0; i < header; i++) {
+                    rb_ary_push(vec, INT2FIX(des_read_uint32(des)));
+                }
+                break;
+            case AMF3_VECTOR_DOUBLE_MARKER:
+                for(i = 0; i < header; i++) {
+                    rb_ary_push(vec, rb_float_new(des_read_double(des)));
+                }
+                break;
+            case AMF3_VECTOR_OBJECT_MARKER:
+                des3_read_string(des); // Class name of objects - ignored
+                for(i = 0; i < header; i++) {
+                    rb_ary_push(vec, des3_deserialize(self));
+                }
+                break;
+        }
+        return vec;
+    }
+}
+
 /*
  * Internal deserialize call - unlike des0_deserialize, it reads the type
  * itself, due to minor changes in the specs that make that modification
@@ -584,6 +634,12 @@ static VALUE des3_deserialize(VALUE self) {
             break;
         case AMF3_BYTE_ARRAY_MARKER:
             ret = des3_read_byte_array(self);
+            break;
+        case AMF3_VECTOR_INT_MARKER:
+        case AMF3_VECTOR_UINT_MARKER:
+        case AMF3_VECTOR_DOUBLE_MARKER:
+        case AMF3_VECTOR_OBJECT_MARKER:
+            ret = des3_read_vec(self, type);
             break;
         case AMF3_DICT_MARKER:
             ret = des3_read_dict(self);

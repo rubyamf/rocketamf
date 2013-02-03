@@ -195,7 +195,34 @@ package {
 					return parentObj;
 				},
 				'amf3-complex-encoded-string-array': [5, "Shift テスト", "UTF テスト", 5],
-				'amf3-encoded-string-ref': ["this is a テスト", "this is a テスト"]
+				'amf3-encoded-string-ref': ["this is a テスト", "this is a テスト"],
+				'amf3-vector-int': function():Vector.<int> {
+					var v:Vector.<int> = new Vector.<int>();
+					v.push(4);
+					v.push(-20);
+					v.push(12);
+					return v;
+				},
+				'amf3-vector-uint': function():Vector.<uint> {
+					var v:Vector.<uint> = new Vector.<uint>();
+					v.push(4);
+					v.push(20);
+					v.push(12);
+					return v;
+				},
+				'amf3-vector-double': function():Vector.<Number> {
+					var v:Vector.<Number> = new Vector.<Number>();
+					v.push(4.3);
+					v.push(-20.6);
+					return v;
+				},
+				'amf3-vector-object': function():Vector.<ASClass> {
+					var v:Vector.<ASClass> = new Vector.<ASClass>();
+					v.push(new ASClass('foo'));
+					v.push(new ASClass('bar'));
+					v.push(new ASClass('baz'));
+					return v;
+				}
 			};
 
 			var outputDir:File = evt.target as File;
