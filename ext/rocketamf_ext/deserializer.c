@@ -525,7 +525,7 @@ static VALUE des3_read_dict(VALUE self) {
         VALUE dict = rb_hash_new();
         rb_ary_push(des->obj_cache, dict);
 
-        des_read_int(des); // Skip - don't know what it does
+        des_read_byte(des); // Weak Keys: Not supported in ruby
 
         int i;
         for(i = 0; i < header; i++) {

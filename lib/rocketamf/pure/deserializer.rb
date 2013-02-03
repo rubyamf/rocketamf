@@ -396,7 +396,6 @@ module RocketAMF
 
       def amf3_read_dict
         type = amf3_read_integer
-        # Currently duplicate dictionaries send false, but I'll leave this in here just in case
         is_reference = (type & 0x01) == 0
         if is_reference
           reference = type >> 1
@@ -405,7 +404,7 @@ module RocketAMF
           dict = {}
           @object_cache << dict
           length = type >> 1
-          skip = amf3_read_integer # TODO: Handle when specs are updated
+          weak_keys = read_int8 @source # Ignore: Not supported in ruby
           0.upto(length - 1) do |i|
             dict[amf3_deserialize] = amf3_deserialize
           end
