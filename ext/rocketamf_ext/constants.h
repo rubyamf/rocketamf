@@ -32,6 +32,10 @@
 #define AMF3_OBJECT_MARKER        0x0A
 #define AMF3_XML_MARKER           0x0B
 #define AMF3_BYTE_ARRAY_MARKER    0x0C
+#define AMF3_VECTOR_INT_MARKER    0x0D
+#define AMF3_VECTOR_UINT_MARKER   0x0E
+#define AMF3_VECTOR_DOUBLE_MARKER 0x0F
+#define AMF3_VECTOR_OBJECT_MARKER 0x10
 #define AMF3_DICT_MARKER          0x11
 
 // Other AMF3 Markers
