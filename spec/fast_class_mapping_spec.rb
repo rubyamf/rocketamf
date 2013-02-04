@@ -78,8 +78,8 @@ describe RocketAMF::Ext::FastClassMapping do
     end
 
     it "should populate a typed hash" do
-      obj = @mapper.populate_ruby_obj RocketAMF::Values::TypedHash.new('UnmappedClass'), {:prop_a => 'Data'}
-      obj[:prop_a].should == 'Data'
+      obj = @mapper.populate_ruby_obj RocketAMF::Values::TypedHash.new('UnmappedClass'), {'prop_a' => 'Data'}
+      obj['prop_a'].should == 'Data'
     end
   end
 

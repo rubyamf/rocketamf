@@ -111,21 +111,6 @@ VALUE des_read_string(AMF_DESERIALIZER *des, unsigned int len) {
 }
 
 /*
- * Because Ruby 1.8 doesn't have a good optimization for looking up symbols from
- * C strings, this function does the lookup without requiring any additional
- * allocations.
- */
-VALUE des_read_sym(AMF_DESERIALIZER *des, unsigned int len) {
-    DES_BOUNDS_CHECK(des, len);
-    char end = des->stream[des->pos+len];
-    des->stream[des->pos+len] = '\0';
-    VALUE sym = ID2SYM(rb_intern(des->stream + des->pos));
-    des->stream[des->pos+len] = end;
-    des->pos += len;
-    return sym;
-}
-
-/*
  * Set the source of the amf reader to a StringIO object, creating a new one to
  * wrap the source if it's only a string
  */
@@ -164,10 +149,9 @@ static VALUE des0_read_amf3(VALUE self) {
 }
 
 /*
- * Reads an AMF0 hash, with a configurable key reading function - either
- * des_read_string or des_read_sym
+ * Reads an AMF0 hash
  */
-static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIALIZER*, unsigned int)) {
+static void des0_read_props(VALUE self, VALUE hash) {
     AMF_DESERIALIZER *des;
     Data_Get_Struct(self, AMF_DESERIALIZER, des);
 
@@ -177,7 +161,7 @@ static void des0_read_props(VALUE self, VALUE hash, VALUE(*read_key)(AMF_DESERIA
             des_read_byte(des); // Read type byte
             return;
         } else {
-            VALUE key = read_key(des, len);
+            VALUE key = des_read_string(des, len);
             char type = des_read_byte(des);
             rb_hash_aset(hash, key, des0_deserialize(self, type));
         }
@@ -194,7 +178,7 @@ static VALUE des0_read_object(VALUE self) {
 
     // Populate object
     VALUE props = rb_hash_new();
-    des0_read_props(self, props, des_read_sym);
+    des0_read_props(self, props);
     rb_funcall(des->class_mapper, id_populate_ruby_obj, 2, obj, props);
 
     return obj;
@@ -211,7 +195,7 @@ static VALUE des0_read_typed_object(VALUE self) {
 
     // Populate object
     VALUE props = rb_hash_new();
-    des0_read_props(self, props, des_read_sym);
+    des0_read_props(self, props);
     rb_funcall(des->class_mapper, id_populate_ruby_obj, 2, obj, props);
 
     return obj;
@@ -223,7 +207,7 @@ static VALUE des0_read_hash(VALUE self) {
     des_read_uint32(des); // Hash size, but there's no optimization I can perform with this
     VALUE obj = rb_hash_new();
     rb_ary_push(des->obj_cache, obj);
-    des0_read_props(self, obj, des_read_string);
+    des0_read_props(self, obj);
     return obj;
 }
 
@@ -409,7 +393,7 @@ static VALUE des3_read_object(VALUE self) {
 
         VALUE props = rb_hash_new();
         for(i = 0; i < members_len; i++) {
-            rb_hash_aset(props, rb_str_intern(RARRAY_PTR(members)[i]), des3_deserialize(self));
+            rb_hash_aset(props, RARRAY_PTR(members)[i], des3_deserialize(self));
         }
 
         VALUE dynamic_props = Qnil;
@@ -418,7 +402,7 @@ static VALUE des3_read_object(VALUE self) {
             while(1) {
                 VALUE key = des3_read_string(des);
                 if(RSTRING_LEN(key) == 0) break;
-                rb_hash_aset(dynamic_props, rb_str_intern(key), des3_deserialize(self));
+                rb_hash_aset(dynamic_props, key, des3_deserialize(self));
             }
         }
 

@@ -129,12 +129,11 @@ module RocketAMF
         time
       end
 
-      def amf0_read_props obj={}, key_type=:sym
+      def amf0_read_props obj={}
         while true
           key = amf0_read_string
           type = read_int8 @source
           break if type == AMF0_OBJECT_END_MARKER
-          key = key.to_sym if key_type == :sym
           obj[key] = amf0_deserialize(type)
         end
         obj
@@ -144,7 +143,7 @@ module RocketAMF
         len = read_word32_network(@source) # Read and ignore length
         obj = {}
         @ref_cache << obj
-        amf0_read_props obj, :string
+        amf0_read_props obj
       end
 
       def amf0_read_object add_to_ref_cache=true
@@ -364,7 +363,7 @@ module RocketAMF
             props = {}
             traits[:members].each do |key|
               value = amf3_deserialize
-              props[key.to_sym] = value
+              props[key] = value
             end
 
             dynamic_props = nil
@@ -372,7 +371,7 @@ module RocketAMF
               dynamic_props = {}
               while (key = amf3_read_string) && key.length != 0  do # read next key
                 value = amf3_deserialize
-                dynamic_props[key.to_sym] = value
+                dynamic_props[key] = value
               end
             end
 

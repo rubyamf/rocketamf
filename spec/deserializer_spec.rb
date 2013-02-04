@@ -85,7 +85,7 @@ describe "when deserializing" do
     it "should deserialize anonymous objects" do
       input = object_fixture('amf0-object.bin')
       output = RocketAMF.deserialize(input, 0)
-      output.should == {:foo => 'baz', :bar => 3.14}
+      output.should == {'foo' => 'baz', 'bar' => 3.14}
       output.type.should == ""
     end
 
@@ -94,7 +94,7 @@ describe "when deserializing" do
       output = RocketAMF.deserialize(input, 0)
 
       output.type.should == 'org.amf.ASClass'
-      output.should == {:foo => 'bar', :baz => nil}
+      output.should == {'foo' => 'bar', 'baz' => nil}
     end
 
     it "should deserialize a mapped object as a mapped ruby class instance" do
@@ -210,9 +210,9 @@ describe "when deserializing" do
         output = RocketAMF.deserialize(input, 3)
 
         expected = {
-          :property_one => 'foo',
-          :nil_property => nil,
-          :another_public_property => 'a_public_value'
+          'property_one' => 'foo',
+          'nil_property' => nil,
+          'another_public_property' => 'a_public_value'
         }
         output.should == expected
         output.type.should == ""
@@ -243,7 +243,7 @@ describe "when deserializing" do
       it "should deserialize a hash as a dynamic anonymous object" do
         input = object_fixture("amf3-hash.bin")
         output = RocketAMF.deserialize(input, 3)
-        output.should == {:foo => "bar", :answer => 42}
+        output.should == {'foo' => "bar", 'answer' => 42}
       end
 
       it "should deserialize an empty array" do
@@ -268,9 +268,9 @@ describe "when deserializing" do
         input = object_fixture("amf3-mixed-array.bin")
         output = RocketAMF.deserialize(input, 3)
 
-        h1 = {:foo_one => "bar_one"}
-        h2 = {:foo_two => ""}
-        so1 = {:foo_three => 42}
+        h1 = {'foo_one' => "bar_one"}
+        h2 = {'foo_two' => ""}
+        so1 = {'foo_three' => 42}
         output.should == [h1, h2, so1, {}, [h1, h2, so1], [], 42, "", [], "", {}, "bar_one", so1]
       end
 
@@ -344,9 +344,9 @@ describe "when deserializing" do
       it "should deserialize Vector.<Object>" do
         input = object_fixture('amf3-vector-object.bin')
         output = RocketAMF.deserialize(input, 3)
-        output[0][:foo].should == 'foo'
+        output[0]['foo'].should == 'foo'
         output[1].type.should == 'org.amf.ASClass'
-        output[2][:foo].should == 'baz'
+        output[2]['foo'].should == 'baz'
       end
     end
 
@@ -357,7 +357,7 @@ describe "when deserializing" do
 
         foo = "foo"
         bar = "str"
-        output.should == [foo, bar, foo, bar, foo, {:str => "foo"}]
+        output.should == [foo, bar, foo, bar, foo, {'str' => "foo"}]
       end
 
       it "should not reference the empty string" do
@@ -380,8 +380,8 @@ describe "when deserializing" do
         input = object_fixture("amf3-object-ref.bin")
         output = RocketAMF.deserialize(input, 3)
 
-        obj1 = {:foo => "bar"}
-        obj2 = {:foo => obj1[:foo]}
+        obj1 = {'foo' => "bar"}
+        obj2 = {'foo' => obj1['foo']}
         output.should == [[obj1, obj2], "bar", [obj1, obj2]]
       end
 
@@ -430,9 +430,9 @@ describe "when deserializing" do
         input = object_fixture("amf3-graph-member.bin")
         output = RocketAMF.deserialize(input, 3)
 
-        output[:children][0][:parent].should === output
-        output[:parent].should === nil
-        output[:children].length.should == 2
+        output['children'][0]['parent'].should === output
+        output['parent'].should === nil
+        output['children'].length.should == 2
         # Expected object:
         # parent = Hash.new
         # child1 = Hash.new
