@@ -651,7 +651,7 @@ int ser_free_strtable_key(st_data_t key, st_data_t value, st_data_t ignored)
 
     return ST_DELETE;
 }
-inline void ser_free_cache(AMF_SERIALIZER *ser) {
+void ser_free_cache(AMF_SERIALIZER *ser) {
     if(ser->str_cache) {
         st_foreach(ser->str_cache, ser_free_strtable_key, 0);
         st_free_table(ser->str_cache);
