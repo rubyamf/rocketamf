@@ -57,6 +57,12 @@ describe "when deserializing" do
       output.should == {'a' => 'b', 'c' => 'd'}
     end
 
+    it "should deserialize hashes with empty string keys" do
+      input = object_fixture('amf0-empty-string-key-hash.bin')
+      output = RocketAMF.deserialize(input, 0)
+      output.should == {'a' => 'b', 'c' => 'd', '' => 'last'}
+    end
+
     it "should deserialize arrays from flash player" do
       # Even Array is serialized as a "hash"
       input = object_fixture('amf0-ecma-ordinal-array.bin')

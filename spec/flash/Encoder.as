@@ -33,6 +33,13 @@ package {
 					a['c'] = 'd';
 					return a;
 				},
+				'amf0-empty-string-key-hash': function():Array {
+					var a:Array = new Array();
+					a['a'] = 'b';
+					a['c'] = 'd';
+					a[''] = 'last';
+					return a;
+				},
 				'amf0-ecma-ordinal-array': ['a', 'b', 'c', 'd'],
 				//'amf0-strict-array': ['a', 'b', 'c', 'd'], // Not possible from AS3
 				'amf0-time': function():Date {

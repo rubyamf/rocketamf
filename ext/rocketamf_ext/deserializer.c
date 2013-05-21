@@ -23,6 +23,11 @@ char des_read_byte(AMF_DESERIALIZER *des) {
     return des->stream[des->pos-1];
 }
 
+char des_read_ahead_byte(AMF_DESERIALIZER *des) {
+    DES_BOUNDS_CHECK(des, 1);
+    return des->stream[des->pos];
+}
+
 int des_read_uint16(AMF_DESERIALIZER *des) {
     DES_BOUNDS_CHECK(des, 2);
     const unsigned char *str = (unsigned char*)(des->stream) + des->pos;
@@ -157,7 +162,8 @@ static void des0_read_props(VALUE self, VALUE hash) {
 
     while(1) {
         int len = des_read_uint16(des);
-        if(len == 0) {
+        if(len == 0 && des_read_ahead_byte(des) == AMF0_OBJECT_END_MARKER) {
+            // Don't create a ruby string if this is really the object end
             des_read_byte(des); // Read type byte
             return;
         } else {

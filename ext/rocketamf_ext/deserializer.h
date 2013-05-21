@@ -16,6 +16,7 @@ typedef struct {
 } AMF_DESERIALIZER;
 
 char des_read_byte(AMF_DESERIALIZER *des);
+char des_read_ahead_byte(AMF_DESERIALIZER *des);
 int des_read_uint16(AMF_DESERIALIZER *des);
 unsigned int des_read_uint32(AMF_DESERIALIZER *des);
 double des_read_double(AMF_DESERIALIZER *des);
