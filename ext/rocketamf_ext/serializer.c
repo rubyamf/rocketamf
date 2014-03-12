@@ -603,6 +603,16 @@ static VALUE ser3_serialize(VALUE self, VALUE obj) {
         klass = CLASS_OF(obj);
     }
 
+    //Detects proxy arrays and converts them to real arrays
+    if(type == T_OBJECT){
+      VALUE testObj = rb_check_array_type(obj);
+      if(testObj != Qnil){
+        obj = testObj;
+        type = T_ARRAY;
+        //TODO: clean up old object or will GC take care of it well enough?
+      }
+    }
+
     if(rb_respond_to(obj, id_encode_amf)) {
         rb_funcall(obj, id_encode_amf, 1, self);
     } else if(type == T_STRING || type == T_SYMBOL) {

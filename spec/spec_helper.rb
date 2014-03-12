@@ -33,6 +33,17 @@ class ClassMappingTest2 < ClassMappingTest
   attr_accessor :prop_c
 end
 module ANamespace; class TestRubyClass; end; end
+class ProxyArray
+  instance_methods.each {|m| undef_method m unless m=~ /^__|^send$|^object_id$/}
+  protected
+  def method_missing(name, *args, &block)
+    target.send(name, *args, &block)
+  end
+
+  def target
+    @target ||= []
+  end
+end
 class ExternalizableTest
   include RocketAMF::Pure::ReadIOHelpers
   include RocketAMF::Pure::WriteIOHelpers

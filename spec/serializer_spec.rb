@@ -52,6 +52,15 @@ describe "when serializing" do
       output.should == object_fixture('amf0-strict-array.bin')
     end
 
+    it "should serialize an array through a proxy class" do
+      expected = object_fixture("amf3-primitive-array.bin")
+      arr = ProxyArray.new
+      [1,2,3,4,5].each {|e| arr.push e}
+
+      output = RocketAMF.serialize(arr,3)
+      output.should == expected
+    end
+
     it "should serialize references" do
       obj = OtherClass.new
       obj.foo = "baz"
@@ -340,6 +349,15 @@ describe "when serializing" do
         input = [a, b, b]
 
         output = RocketAMF.serialize(input, 3)
+        output.should == expected
+      end
+
+      it "should serialize an array through a proxy class" do
+        expected = object_fixture("amf3-primitive-array.bin")
+        arr = ProxyArray.new
+        [1,2,3,4,5].each {|e| arr.push e}
+
+        output = RocketAMF.serialize(arr,3)
         output.should == expected
       end
 
