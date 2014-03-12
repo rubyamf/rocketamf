@@ -1,9 +1,9 @@
 require 'rubygems'
 require 'rake'
-require 'rake/rdoctask'
-require 'rake/gempackagetask'
-require 'rspec/core/rake_task'
 require 'rake/extensiontask'
+require 'rdoc/task'
+require 'rubygems/package_task'
+require 'rspec/core/rake_task'
 
 desc 'Default: run the specs.'
 task :default => :spec
@@ -33,7 +33,7 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_files.include("lib") # Don't include ext folder because no one cares
 end
 
-Rake::GemPackageTask.new(spec) do |pkg|
+Gem::PackageTask.new(spec) do |pkg|
   pkg.need_zip = false
   pkg.need_tar = false
 end
